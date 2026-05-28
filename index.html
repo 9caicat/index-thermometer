@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#080a0f" />
+  <title>宽基温度计 · INDEX THERMOMETER</title>
+  <meta name="description" content="A股宽基指数估值温度感知系统 — 用历史分位读市场冷热" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Decorative background -->
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-scanline" aria-hidden="true"></div>
+
+  <!-- ─────────── Header ─────────── -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#" class="brand" aria-label="宽基温度计 首页">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <!-- Stylized thermometer mark -->
+          <rect x="13" y="4" width="6" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="1.4" />
+          <circle cx="16" cy="25" r="4.5" fill="none" stroke="currentColor" stroke-width="1.4" />
+          <rect x="14.4" y="11" width="3.2" height="11" rx="1.6" fill="currentColor" opacity="0.85" />
+          <circle cx="16" cy="25" r="3" fill="currentColor" opacity="0.85" />
+        </svg>
+        <div class="brand-text">
+          <span class="brand-sub">A股宽基估值温度感知系统</span>
+          <h1 class="brand-title">宽基温度计 <span class="brand-en">INDEX THERMOMETER</span></h1>
+        </div>
+      </a>
+
+      <div class="update-pill" role="status" aria-live="polite">
+        <span class="update-dot"></span>
+        <div class="update-text">
+          <span class="update-label">LIVE · 数据更新</span>
+          <span class="update-time" id="update-time">--</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main container">
+
+    <!-- ─────────── 01 · INDICES Dashboard ─────────── -->
+    <section class="block" aria-labelledby="dash-label">
+      <div class="block-head">
+        <span class="block-num">01</span>
+        <h2 class="block-label" id="dash-label">指数监控 <span class="block-label-en">/ INDICES</span></h2>
+        <span class="block-meta">4 MONITORED</span>
+      </div>
+
+      <div class="dash-grid" id="dash-grid">
+        <!-- cards injected by app.js -->
+      </div>
+    </section>
+
+    <!-- ─────────── 02 · ANALYSIS ─────────── -->
+    <section class="block" aria-labelledby="analysis-label">
+      <div class="block-head">
+        <span class="block-num">02</span>
+        <h2 class="block-label" id="analysis-label">深度分析 <span class="block-label-en">/ ANALYSIS</span></h2>
+        <span class="block-meta" id="analysis-meta">— SELECTED</span>
+      </div>
+
+      <div class="analysis-card">
+        <!-- top strip: name + price -->
+        <div class="analysis-top">
+          <div class="analysis-id">
+            <span class="analysis-code" id="a-code">SH·000001</span>
+            <h3 class="analysis-name" id="a-name">上证指数</h3>
+          </div>
+          <div class="analysis-price">
+            <span class="price-label">CLOSE 收盘</span>
+            <span class="price-value" id="a-price">3,659.76</span>
+            <span class="price-change" id="a-change">+0.42%</span>
+          </div>
+        </div>
+
+        <!-- THE READOUT: thermometer + temperature value + zone breakdown -->
+        <div class="analysis-core">
+          <!-- Left: thermometer + temperature value -->
+          <div class="core-readout">
+            <div class="thermo-wrap">
+              <svg class="thermometer-svg" id="a-thermo" viewBox="0 0 100 330" aria-hidden="true"></svg>
+            </div>
+
+            <div class="readout-text">
+              <span class="readout-label">温度值 <span class="block-label-en">/ TEMPERATURE</span></span>
+              <div class="temp-value">
+                <span class="temp-num" id="a-temp">56</span><span class="temp-deg">°</span>
+              </div>
+              <div class="zone-big" id="a-zone" data-zone="fair">常 温</div>
+              <p class="zone-hint" id="a-hint">温度居中 · 约一半的历史时段处于此区间</p>
+            </div>
+          </div>
+
+          <!-- Right: historical zone breakdown (text table, like CoinGlass style) -->
+          <div class="zone-breakdown">
+            <span class="readout-label">历史温区分布 <span class="mono">· <span id="a-total">351</span> 个交易日</span></span>
+            <div class="breakdown-table" id="a-breakdown">
+              <!-- 6 rows injected by app.js -->
+            </div>
+            <div class="breakdown-summary">
+              <span class="summary-item">
+                <span class="summary-num" id="a-cheaper">198</span><span class="summary-desc">天 比当前更冷</span>
+              </span>
+              <span class="summary-sep" aria-hidden="true">·</span>
+              <span class="summary-item">
+                <span class="summary-num" id="a-expensive">152</span><span class="summary-desc">天 比当前更热</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────── 03 · TIMELINE chart ─────────── -->
+    <section class="block" aria-labelledby="chart-label">
+      <div class="block-head">
+        <span class="block-num">03</span>
+        <h2 class="block-label" id="chart-label">温度走势 <span class="block-label-en">/ TIMELINE</span></h2>
+        <div class="range-tabs" role="tablist" aria-label="时间范围">
+          <button class="range-btn" data-range="3M">3M</button>
+          <button class="range-btn" data-range="6M">6M</button>
+          <button class="range-btn active" data-range="1Y">1Y</button>
+          <button class="range-btn" data-range="ALL">全部</button>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-corners" aria-hidden="true">
+          <span class="ct-corner tl"></span>
+          <span class="ct-corner tr"></span>
+          <span class="ct-corner bl"></span>
+          <span class="ct-corner br"></span>
+        </div>
+        <div class="chart-container" id="chart"></div>
+      </div>
+    </section>
+
+    <!-- ─────────── 04 · REFERENCE ─────────── -->
+    <section class="block" aria-labelledby="about-label">
+      <div class="block-head">
+        <span class="block-num">04</span>
+        <h2 class="block-label" id="about-label">指标说明 <span class="block-label-en">/ REFERENCE</span></h2>
+      </div>
+
+      <div class="about-card">
+        <p class="about-lead">
+          <strong>核心理念：</strong>把市场情绪当作温度 —— 当一只宽基指数的现价相对于<em>长期持仓成本</em>显著偏低时，温度跌入<em>冰点</em>，对应市场恐慌情绪的极端时刻；
+          反之，当现价远高于长期成本时，温度进入<em>沸腾</em>区间，往往是热度难以为继的拐点。
+        </p>
+        <p class="about-body">
+          宽基温度计综合考察了<em>短期</em>（约 7 个月）与<em>长期</em>（约 3.5 年）两条持仓成本均线的偏离程度，
+          再与<em>历史同口径分布</em>做对比，输出一个 0–100° 的温度值。
+          温度越低，意味着市场比绝大多数历史时刻都要寒冷、悲观、便宜。
+        </p>
+        <p class="about-disclaimer">
+          本指标仅适用于<em>宽基指数与行业 ETF</em>。个股因基本面差异可能永久跌破长期均线，请勿套用；
+          且当前模型基于 2018 年以来的 A 股数据校准，<em>历史样本约 8 年、底部信号仅出现 4–5 次</em>，建议作为参考框架而非交易信号系统使用。
+        </p>
+      </div>
+
+      <h3 class="sub-label">温区释义 <span class="sub-label-en">/ ZONES</span></h3>
+      <div class="zones-table" role="table">
+        <div class="zone-row" data-zone="diamond"><span class="zone-pill" data-zone="diamond">冰 点</span><span class="zone-range">温度 0–5°</span><span class="zone-desc">历史最寒冷的 5% 时段</span></div>
+        <div class="zone-row" data-zone="dca"    ><span class="zone-pill" data-zone="dca"    >偏 冷</span><span class="zone-range">温度 5–25°</span><span class="zone-desc">历史较冷的 20% 时段</span></div>
+        <div class="zone-row" data-zone="fair"   ><span class="zone-pill" data-zone="fair"   >常 温</span><span class="zone-range">温度 25–75°</span><span class="zone-desc">历史中段，约 50% 时段处于此区间</span></div>
+        <div class="zone-row" data-zone="warm"   ><span class="zone-pill" data-zone="warm"   >偏 热</span><span class="zone-range">温度 75–90°</span><span class="zone-desc">历史较热的 15% 时段</span></div>
+        <div class="zone-row" data-zone="hot"    ><span class="zone-pill" data-zone="hot"    >过 热</span><span class="zone-range">温度 90–95°</span><span class="zone-desc">历史高位的 5% 时段</span></div>
+        <div class="zone-row" data-zone="extreme"><span class="zone-pill" data-zone="extreme">沸 腾</span><span class="zone-range">温度 95–100°</span><span class="zone-desc">历史最炎热的 5% 时段</span></div>
+      </div>
+
+      <details class="risk-warning">
+        <summary>
+          <span class="warning-icon" aria-hidden="true">!</span>
+          <span class="warning-text">使用风险 <span class="block-label-en">/ CAVEATS</span></span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </summary>
+        <ul class="risk-list">
+          <li><strong>V型闪电底盲区</strong> — 极速暴跌反弹（如2020年3月），温度可能来不及跌入冰点区间，需结合成交量辅助判断。</li>
+          <li><strong>阈值漂移风险</strong> — 若A股发生结构性变化（如注册制深化、ROE趋势性下移），历史分位数对应的温度阈值可能失效。</li>
+          <li><strong>个股不适用</strong> — 该指标仅适用于宽基指数与行业 ETF，单只股票可能因基本面恶化而永久跌破均线。</li>
+          <li><strong>磨底时间成本</strong> — 即使温度进入冰点区间，市场也可能横盘数月，建议以定投方式参与。</li>
+          <li><strong>样本量限制</strong> — 历史有效样本约 8 年，底部信号仅出现 4–5 次，"100% 胜率"的统计意义有限。</li>
+        </ul>
+      </details>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p class="footer-main">每日 16:10 自动更新 · 部署于 GitHub Pages · 开源免费</p>
+      <p class="footer-mock">⚠ 当前为 UI 原型，所有数据均为模拟值</p>
+    </div>
+  </footer>
+
+  <script src="mock-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
