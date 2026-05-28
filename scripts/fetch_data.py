@@ -6,8 +6,10 @@
 
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
+
+CST = timezone(timedelta(hours=8))
 
 import akshare as ak
 import numpy as np
@@ -75,7 +77,7 @@ def already_updated_today() -> bool:
     try:
         with open(OUTPUT_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
-        today_str = datetime.now().strftime("%Y-%m-%d")
+        today_str = datetime.now(CST).strftime("%Y-%m-%d")
         for item in data:
             if item.get("update_time", "").startswith(today_str):
                 return True
@@ -153,7 +155,7 @@ def process_index(info: dict) -> dict:
     days_cheaper = sum(1 for v in valid_vals if v < current_ind)
     days_more_expensive = total_days - days_cheaper - 1
 
-    update_time = datetime.now().strftime("%Y-%m-%d %H:%M CST")
+    update_time = datetime.now(CST).strftime("%Y-%m-%d %H:%M CST")
 
     print(f"  {name:<6}  温度 {current_pct:5.1f}°  [{zone_key}]  价格 {current_price:.2f}  {change_pct:+.2f}%")
 

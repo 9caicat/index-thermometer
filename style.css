@@ -184,6 +184,47 @@ header, main, footer { position: relative; z-index: 1; }
   color: var(--text-dim);
 }
 
+.brand-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.author-name {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.social-links {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+  transition: color 0.18s var(--ease), background 0.18s var(--ease);
+}
+
+.social-link svg {
+  width: 15px;
+  height: 15px;
+}
+
+.social-link:hover {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .update-pill {
   display: flex;
   align-items: center;
