@@ -989,6 +989,52 @@ header, main, footer { position: relative; z-index: 1; }
   letter-spacing: 0.18em;
 }
 
+.footer-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding: 14px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.footer-qr {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elev-2);
+  flex-shrink: 0;
+  display: block;
+  /* 图片缺失时显示灰色占位 */
+  object-fit: cover;
+}
+
+.footer-author-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+}
+
+.footer-author-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+
+.footer-author-tagline {
+  font-family: var(--font-zh);
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
 /* =========================================================================
    Page-load animation
    ========================================================================= */
