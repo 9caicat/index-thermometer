@@ -125,7 +125,7 @@ header, main, footer { position: relative; z-index: 1; }
    Header
    ========================================================================= */
 .site-header {
-  padding: 22px 0;
+  padding: 16px 0;
   border-bottom: 1px solid var(--border);
   background: linear-gradient(180deg, var(--bg-deep) 0%, rgba(7, 9, 15, 0.4) 100%);
   backdrop-filter: blur(8px);
@@ -141,7 +141,7 @@ header, main, footer { position: relative; z-index: 1; }
 
 .brand {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
   min-width: 0;
   color: var(--text);
@@ -152,6 +152,7 @@ header, main, footer { position: relative; z-index: 1; }
   height: 36px;
   flex-shrink: 0;
   color: var(--accent);
+  margin-top: 3px;
 }
 
 .brand-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
@@ -1025,6 +1026,8 @@ header, main, footer { position: relative; z-index: 1; }
   letter-spacing: 0.22em;
   color: var(--text-faint);
   text-transform: uppercase;
+  display: block;
+  text-align: left;
 }
 
 .footer-author-tagline {
@@ -1033,6 +1036,8 @@ header, main, footer { position: relative; z-index: 1; }
   color: var(--text-muted);
   letter-spacing: 0.04em;
   white-space: nowrap;
+  display: block;
+  text-align: left;
 }
 
 /* =========================================================================
