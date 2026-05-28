@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#0e1219"/>
+  <!-- Corner marker TL -->
+  <rect x="16" y="16" width="52" height="52" rx="3" fill="none" stroke="#2c3340" stroke-width="5"/>
+  <rect x="28" y="28" width="28" height="28" rx="2" fill="#2c3340"/>
+  <!-- Corner marker TR -->
+  <rect x="132" y="16" width="52" height="52" rx="3" fill="none" stroke="#2c3340" stroke-width="5"/>
+  <rect x="144" y="28" width="28" height="28" rx="2" fill="#2c3340"/>
+  <!-- Corner marker BL -->
+  <rect x="16" y="132" width="52" height="52" rx="3" fill="none" stroke="#2c3340" stroke-width="5"/>
+  <rect x="28" y="144" width="28" height="28" rx="2" fill="#2c3340"/>
+  <!-- Simulated data modules -->
+  <rect x="84" y="16" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="100" y="16" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="116" y="16" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="84"  y="32" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="116" y="32" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="100" y="48" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="116" y="48" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="16"  y="84" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="32"  y="84" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="48"  y="84" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="84"  y="84" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="100" y="84" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="132" y="84" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="148" y="84" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="116" y="100" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="148" y="100" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="84"  y="116" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="132" y="116" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="16"  y="100" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="48"  y="100" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="84"  y="132" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="100" y="132" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="148" y="132" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="116" y="148" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="148" y="148" width="10" height="10" rx="1" fill="#2c3340"/>
+  <rect x="84"  y="148" width="10" height="10" rx="1" fill="#2c3340"/>
+  <!-- Label -->
+  <text x="100" y="186" text-anchor="middle"
+        font-family="'PingFang SC','Microsoft YaHei',sans-serif"
+        font-size="11" fill="#4d5666">上传 wechat-qr.png 替换</text>
+</svg>
