@@ -147,7 +147,7 @@ header, main, footer { position: relative; z-index: 1; }
 .header-bottom {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   margin-top: 10px;
 }
 
