@@ -132,9 +132,16 @@ header, main, footer { position: relative; z-index: 1; }
   -webkit-backdrop-filter: blur(8px);
 }
 
+.site-header .container {
+  max-width: none;
+  margin: 0;
+  padding: 0 18px;
+}
+
 .header-top {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
 }
 
 .header-bottom {
