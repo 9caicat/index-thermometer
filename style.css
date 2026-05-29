@@ -595,9 +595,9 @@ header, main, footer { position: relative; z-index: 1; }
 .readout-label {
   display: block;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 10px;
   letter-spacing: 0.18em;
-  color: #e0e0e0;
+  color: var(--text-dim);
   text-transform: uppercase;
   margin-bottom: 12px;
 }
