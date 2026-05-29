@@ -22,7 +22,7 @@
   <!-- ─────────── Header ─────────── -->
   <header class="site-header">
     <div class="container">
-      <!-- 第一行：logo + 标题 + 副标题 -->
+      <!-- 第一行：品牌（左）+ 更新时间（右） -->
       <div class="header-top">
         <a href="#" class="brand" aria-label="宽基温度计 首页">
           <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
@@ -35,8 +35,15 @@
           <h1 class="brand-title">宽基温度计</h1>
           <span class="brand-sub">A股宽基估值温度感知系统</span>
         </a>
+        <div class="update-pill" role="status" aria-live="polite">
+          <span class="update-dot"></span>
+          <div class="update-text">
+            <span class="update-label">LIVE · 数据更新</span>
+            <span class="update-time" id="update-time">--</span>
+          </div>
+        </div>
       </div>
-      <!-- 第二行：作者（左）+ 更新时间（右） -->
+      <!-- 第二行：作者信息（左） -->
       <div class="header-bottom">
         <div class="brand-author">
           <span class="author-name">作者@韭菜老猫2019</span>
@@ -67,13 +74,6 @@
                 <line x1="9" y1="11" x2="13" y2="11"/>
               </svg>
             </a>
-          </div>
-        </div>
-        <div class="update-pill" role="status" aria-live="polite">
-          <span class="update-dot"></span>
-          <div class="update-text">
-            <span class="update-label">LIVE · 数据更新</span>
-            <span class="update-time" id="update-time">--</span>
           </div>
         </div>
       </div>
