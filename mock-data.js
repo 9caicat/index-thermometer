@@ -278,8 +278,10 @@ window.DIAMOND_DATA = INDEX_CONFIGS.map(buildIndexData);
 // Most recent update timestamp — assume run at 16:10 Beijing time today
 window.DIAMOND_UPDATE_TIME = (() => {
   const now = new Date();
+  // Convert to UTC+8 explicitly
+  const utc8 = new Date(now.getTime() + (8 * 60 + now.getTimezoneOffset()) * 60000);
   // Roll back to most recent weekday close
-  let d = new Date(now);
+  let d = new Date(utc8);
   while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() - 1);
   d.setHours(16, 10, 0, 0);
   const y = d.getFullYear();
@@ -287,5 +289,5 @@ window.DIAMOND_UPDATE_TIME = (() => {
   const dd = String(d.getDate()).padStart(2, "0");
   const hh = String(d.getHours()).padStart(2, "0");
   const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${y}-${m}-${dd}  ${hh}:${mm} CST`;
+  return `${y}-${m}-${dd}  ${hh}:${mm}`;
 })();
