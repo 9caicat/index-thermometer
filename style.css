@@ -125,7 +125,7 @@ header, main, footer { position: relative; z-index: 1; }
    Header
    ========================================================================= */
 .site-header {
-  padding: 16px 0;
+  padding: 20px 0;
   border-bottom: 1px solid var(--border);
   background: linear-gradient(180deg, var(--bg-deep) 0%, rgba(7, 9, 15, 0.4) 100%);
   backdrop-filter: blur(8px);
@@ -141,8 +141,8 @@ header, main, footer { position: relative; z-index: 1; }
 
 .brand {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
+  align-items: center;
+  gap: 12px;
   min-width: 0;
   color: var(--text);
 }
@@ -152,7 +152,6 @@ header, main, footer { position: relative; z-index: 1; }
   height: 36px;
   flex-shrink: 0;
   color: var(--accent);
-  margin-top: 3px;
 }
 
 .brand-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
@@ -167,10 +166,10 @@ header, main, footer { position: relative; z-index: 1; }
 
 .brand-title {
   font-family: var(--font-zh);
-  font-weight: 700;
-  font-size: 18px;
+  font-weight: 600;
+  font-size: 20px;
+  color: #ffffff;
   letter-spacing: 0.04em;
-  margin-top: 2px;
   display: flex;
   align-items: baseline;
   gap: 10px;
@@ -189,14 +188,15 @@ header, main, footer { position: relative; z-index: 1; }
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 12px;
 }
 
 .author-name {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 14px;
+  font-weight: 500;
   letter-spacing: 0.06em;
-  color: var(--text-dim);
+  color: #e0e0e0;
 }
 
 .social-links {
@@ -217,8 +217,8 @@ header, main, footer { position: relative; z-index: 1; }
 }
 
 .social-link svg {
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
 }
 
 .social-link:hover {
@@ -1063,7 +1063,7 @@ header, main, footer { position: relative; z-index: 1; }
   .main { padding: 40px 28px 90px; gap: 56px; }
 
   .brand-mark { width: 42px; height: 42px; }
-  .brand-title { font-size: 22px; }
+  .brand-title { font-size: 24px; }
   .brand-sub   { font-size: 11px; }
   .brand-en    { font-size: 11.5px; }
 
