@@ -993,39 +993,37 @@ header, main, footer { position: relative; z-index: 1; }
 .footer-author {
   display: inline-flex;
   align-items: center;
-  gap: 14px;
+  gap: 18px;
   margin-bottom: 20px;
-  padding: 14px 18px;
+  padding: 18px 24px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-elev);
 }
 
 .footer-qr {
-  width: 72px;
-  height: 72px;
+  width: 96px;
+  height: 96px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--bg-elev-2);
   flex-shrink: 0;
   display: block;
-  /* 图片缺失时显示灰色占位 */
   object-fit: cover;
 }
 
 .footer-author-info {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
   text-align: left;
 }
 
 .footer-author-label {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.22em;
-  color: var(--text-faint);
-  text-transform: uppercase;
+  font-family: var(--font-zh);
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  color: #ffffff;
   display: block;
   text-align: left;
 }
