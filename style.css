@@ -535,7 +535,7 @@ header, main, footer { position: relative; z-index: 1; }
   font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: 0.2em;
-  color: var(--text-dim);
+  color: #ffffff;
   text-transform: uppercase;
 }
 .price-value {
@@ -597,7 +597,7 @@ header, main, footer { position: relative; z-index: 1; }
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.18em;
-  color: var(--text-dim);
+  color: #ffffff;
   text-transform: uppercase;
   margin-bottom: 12px;
 }
