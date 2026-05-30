@@ -643,7 +643,7 @@ function bindRange() {
 
 /* ──────────────  Init  ────────────────────────────────────────── */
 function init() {
-  document.getElementById("update-time").textContent = UPDATE_TIME;
+  document.getElementById("update-time").textContent = UPDATE_TIME.replace(/\s*CST$/i, "");
   renderDashboard();
   renderAnalysis(DATA[state.activeIdx]);
   bindRange();

@@ -155,7 +155,7 @@ def process_index(info: dict) -> dict:
     days_cheaper = sum(1 for v in valid_vals if v < current_ind)
     days_more_expensive = total_days - days_cheaper - 1
 
-    update_time = datetime.now(CST).strftime("%Y-%m-%d %H:%M CST")
+    update_time = datetime.now(CST).strftime("%Y-%m-%d %H:%M")
 
     print(f"  {name:<6}  温度 {current_pct:5.1f}°  [{zone_key}]  价格 {current_price:.2f}  {change_pct:+.2f}%")
 
