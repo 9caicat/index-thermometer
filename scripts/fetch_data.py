@@ -20,6 +20,7 @@ import pandas as pd
 INDICES = [
     {"code": "sh000001", "name": "上证指数", "market": "SH"},
     {"code": "sh000300", "name": "沪深300",  "market": "SH"},
+    {"code": "sh000906", "name": "中证800",  "market": "SH"},
     {"code": "sh000688", "name": "科创50",   "market": "SH"},
     {"code": "sz399006", "name": "创业板指", "market": "SZ"},
 ]

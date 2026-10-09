@@ -1145,3 +1145,34 @@ header, main, footer { position: relative; z-index: 1; }
     transition-duration: 0.01ms !important;
   }
 }
+
+/* =========================================================================
+   站点切换（宽基温度计 ⇄ 指标实验室）
+   ========================================================================= */
+.brand-alt {
+  font-family: var(--font-zh);
+  font-weight: 600;
+  font-size: 20px;                 /* 与 .brand-title 同字号 */
+  letter-spacing: 0.04em;
+  color: #ffffff;
+  opacity: 0.36;
+  transition: opacity 0.2s var(--ease);
+  white-space: nowrap;
+  user-select: none;
+  margin: 0 auto 0 14px;           /* 紧贴品牌右侧，剩余空间让给更新胶囊 */
+}
+.brand-alt:hover { opacity: 1; }
+.brand-alt-arrow {
+  display: inline-block;
+  margin-left: 6px;
+  font-family: var(--font-display);
+  transition: transform 0.2s var(--ease);
+}
+.brand-alt:hover .brand-alt-arrow { transform: translateX(5px); }
+/* 实验室页：主站标题变暗、作为返回入口 */
+.brand-title-back {
+  color: #ffffff;
+  opacity: 0.36;
+  transition: opacity 0.2s var(--ease);
+}
+a.brand:hover .brand-title-back { opacity: 1; }

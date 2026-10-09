@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#080a0f" />
+  <title>指标实验室 · INDICATOR LAB — 宽基温度计</title>
+  <meta name="description" content="宽基指数实验性指标验证页：成本锚（定投成本线与长期均线）、价格-情绪背离。主站温度指标原样保留，本页全部指标为新增。" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="style.css?v=2" />
+  <style>
+    /* ── 实验室独有样式（.lab- 前缀，不动 style.css）────────────── */
+    .lab-toolbar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 10px 12px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .lab-chips { display: flex; gap: 2px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 3px; padding: 2px; }
+    .lab-chip {
+      font-family: var(--font-zh);
+      font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+      color: var(--text-muted);
+      padding: 6px 14px; border-radius: 2px;
+      transition: all 0.2s var(--ease);
+      display: inline-flex; align-items: baseline; gap: 7px;
+    }
+    .lab-chip .mono { font-size: 10.5px; color: var(--text-dim); }
+    .lab-chip:hover { color: var(--text); }
+    .lab-chip.active { background: var(--text); color: var(--bg); }
+    .lab-chip.active .mono { color: var(--bg); opacity: 0.65; }
+    .lab-readout {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+      padding: 10px 12px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .lab-stat { display: inline-flex; align-items: baseline; gap: 7px; }
+    .lab-stat .k {
+      font-family: var(--font-zh); font-size: 11.5px; font-weight: 500;
+      color: var(--text-muted); letter-spacing: 0.04em;
+    }
+    .lab-stat .v {
+      font-family: var(--font-mono); font-size: 14px; font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .lab-stat .v.pos { color: var(--z-warm); }
+    .lab-stat .v.neg { color: var(--z-diamond); }
+    .lab-sep { color: var(--text-faint); }
+
+    .lab-theory {
+      padding: 12px 18px 18px;
+      display: flex; flex-direction: column; gap: 12px;
+      border-top: 1px dashed var(--border);
+    }
+    .lab-theory p {
+      font-family: var(--font-zh);
+      font-size: 13.5px; line-height: 1.85;
+      color: var(--text-muted);
+    }
+    .lab-theory p strong { font-weight: 700; color: var(--text); }
+    @media (max-width: 760px) {
+      .lab-divrow { grid-template-columns: 84px 70px 64px 48px 54px 62px 62px 62px 60px; font-size: 11px; padding: 8px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-scanline" aria-hidden="true"></div>
+
+  <!-- ─────────── Header ─────────── -->
+  <header class="site-header">
+    <div class="container">
+      <div class="header-top">
+        <a href="index.html" class="brand" aria-label="返回宽基温度计主站" title="返回宽基温度计主站">
+          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="13" y="4" width="6" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="1.4" />
+            <circle cx="16" cy="25" r="4.5" fill="none" stroke="currentColor" stroke-width="1.4" />
+            <rect x="14.4" y="11" width="3.2" height="11" rx="1.6" fill="currentColor" opacity="0.85" />
+            <circle cx="16" cy="25" r="3" fill="currentColor" opacity="0.85" />
+          </svg>
+          <h1 class="brand-title brand-title-back">宽基温度计</h1>
+        </a>
+        <h1 class="brand-title">指标实验室</h1>
+        <span class="brand-sub">INDICATOR LAB</span>
+        <div class="update-pill" role="status" aria-live="polite">
+          <span class="update-dot"></span>
+          <div class="update-text">
+            <span class="update-label">LIVE · 数据更新</span>
+            <span class="update-time" id="update-time">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main container">
+
+    <!-- 工具栏：指数切换（全局联动）+ 返回主站 -->
+    <section class="block" aria-label="指数切换">
+      <div class="lab-toolbar">
+        <div class="lab-chips" id="idxChips" role="tablist" aria-label="选择指数"></div>
+      </div>
+    </section>
+
+    <!-- ─────────── L1 · 成本锚 ─────────── -->
+    <section class="block" aria-labelledby="cost-label">
+      <div class="block-head">
+        <span class="block-num">L1</span>
+        <h2 class="block-label" id="cost-label">成本锚 <span class="block-label-en">/ COST ANCHOR</span></h2>
+        <div class="range-tabs" role="tablist" aria-label="周期">
+          <button class="range-btn active" data-freq="D">日线</button>
+          <button class="range-btn" data-freq="W">周线</button>
+        </div>
+      </div>
+
+      <div class="lab-readout" id="costReadout"></div>
+
+      <div class="chart-card">
+        <div class="chart-corners" aria-hidden="true">
+          <span class="ct-corner tl"></span><span class="ct-corner tr"></span>
+          <span class="ct-corner bl"></span><span class="ct-corner br"></span>
+        </div>
+        <div class="chart-container" id="costChart" style="height:560px"></div>
+      </div>
+
+      <details class="risk-warning" open>
+        <summary>
+          <span class="warning-icon" aria-hidden="true">i</span>
+          <span class="warning-text">成本锚 · 理论依据 <span class="block-label-en">/ THEORY</span></span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </summary>
+        <div class="lab-theory">
+          <p><strong>宏观背景。</strong>200 日（约一年）覆盖一轮货币与库存周期；850 日（约 3.5 年）跨越一轮完整的信贷周期；50 周与 200 周是同一逻辑的周线版，采样更稀、曲线更平滑，适合判定大级别牛熊。成本线的斜率由宏观周期决定：持续上翘对应扩张期，走平下弯对应收缩期。</p>
+          <p><strong>微观结构。</strong>价格与成本线的关系，就是市场平均持仓者的浮盈浮亏状态——价格在成本线上方时，整体浮盈、情绪偏热，偏离过大易回踩；在下方时，整体浮亏、割肉动力衰竭、情绪偏冷，价格线随之由黄转蓝。850 日线与 200 周线是牛熊分水岭：线上运行趋势向上，有效跌破趋势走坏，回踩不破即是支撑。价格高于短期成本、短期成本高于长期成本，构成多头排列，反之为空头排列。</p>
+          <p><strong>数学本质。</strong>MA200 是「每日买入相同股数」的平均成本；定投成本线是调和均值（n ÷ 价格倒数之和），即「每日买入相同金额」的真实成本——价格低时自动多买份额，故调和均值不高于算术均值，差额约为价格方差的一半（调和-算术均值不等式）。对数坐标下，成本线就是 log 价格的滑动平均；价格对成本的偏离服从均值回归，偏离越极端、回归动力越强——这正是温度指标用偏离度分位度量冷热的数学基础。</p>
+        </div>
+      </details>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p class="footer-main">指标实验室 · 主站温度指标原样保留，本页指标均为新增实验 · 每日 16:10 随主站数据自动更新</p>
+      <p class="footer-mock">⚠ 实验指标有效性仍在验证中，仅供学习交流，不构成投资建议</p>
+    </div>
+  </footer>
+
+  <script src="mock-data.js?v=3"></script>
+  <script src="lab.js"></script>
+</body>
+</html>
