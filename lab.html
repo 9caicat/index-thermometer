@@ -15,6 +15,8 @@
   <link rel="stylesheet" href="style.css?v=2" />
   <style>
     /* ── 实验室独有样式（.lab- 前缀，不动 style.css）────────────── */
+    .lab-pagetitle { margin: 0 auto 0 14px; }
+
     .lab-toolbar {
       display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
       padding: 10px 12px;
@@ -35,6 +37,16 @@
     .lab-chip:hover { color: var(--text); }
     .lab-chip.active { background: var(--text); color: var(--bg); }
     .lab-chip.active .mono { color: var(--bg); opacity: 0.65; }
+    .lab-intro {
+      padding: 10px 14px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      border-left: 3px solid var(--z-warm);
+      font-family: var(--font-zh);
+      font-size: 13px; line-height: 1.85;
+      color: var(--text-2);
+    }
     .lab-readout {
       display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
       padding: 10px 12px;
@@ -88,8 +100,7 @@
           </svg>
           <h1 class="brand-title brand-title-back">宽基温度计</h1>
         </a>
-        <h1 class="brand-title">指标实验室</h1>
-        <span class="brand-sub">INDICATOR LAB</span>
+        <h1 class="brand-title lab-pagetitle">指标实验室</h1>
         <div class="update-pill" role="status" aria-live="polite">
           <span class="update-dot"></span>
           <div class="update-text">
@@ -121,6 +132,8 @@
         </div>
       </div>
 
+      <div class="lab-intro">成本锚是什么？图表就三条线：收盘价、200 日定投成本线、850 日长期成本线（周线模式为 50 周 / 200 周）。黄线在红线上方，说明市场的短期持仓者整体浮盈；价格跌入红线下，说明连定投的人都被套；跌破蓝线，说明当前价格已经低于过去 3-4 年的持有均价。注意：所有指标仅供学习交流使用，不构成任何投资建议和依据！</div>
+
       <div class="lab-readout" id="costReadout"></div>
 
       <div class="chart-card">
@@ -140,7 +153,6 @@
         <div class="lab-theory">
           <p><strong>宏观背景。</strong>200 日（约一年）覆盖一轮货币与库存周期；850 日（约 3.5 年）跨越一轮完整的信贷周期；50 周与 200 周是同一逻辑的周线版，采样更稀、曲线更平滑，适合判定大级别牛熊。成本线的斜率由宏观周期决定：持续上翘对应扩张期，走平下弯对应收缩期。</p>
           <p><strong>微观结构。</strong>价格与成本线的关系，就是市场平均持仓者的浮盈浮亏状态——价格在成本线上方时，整体浮盈、情绪偏热，偏离过大易回踩；在下方时，整体浮亏、割肉动力衰竭、情绪偏冷，价格线随之由黄转蓝。850 日线与 200 周线是牛熊分水岭：线上运行趋势向上，有效跌破趋势走坏，回踩不破即是支撑。价格高于短期成本、短期成本高于长期成本，构成多头排列，反之为空头排列。</p>
-          <p><strong>数学本质。</strong>MA200 是「每日买入相同股数」的平均成本；定投成本线是调和均值（n ÷ 价格倒数之和），即「每日买入相同金额」的真实成本——价格低时自动多买份额，故调和均值不高于算术均值，差额约为价格方差的一半（调和-算术均值不等式）。对数坐标下，成本线就是 log 价格的滑动平均；价格对成本的偏离服从均值回归，偏离越极端、回归动力越强——这正是温度指标用偏离度分位度量冷热的数学基础。</p>
         </div>
       </details>
     </section>
