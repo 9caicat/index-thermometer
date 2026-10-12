@@ -195,7 +195,7 @@ async function loadAndInit() {
     if (window.__FORCE_DATA__) {
       raw = window.__FORCE_DATA__;
     } else {
-      const resp = await fetch("data/index_data.json");
+      const resp = await fetch("data/index_data.json?v=" + new Date().toISOString().slice(0, 10));
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       raw = await resp.json();
     }

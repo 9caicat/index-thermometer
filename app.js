@@ -61,7 +61,7 @@ async function loadAndInit() {
   if (footerMock) footerMock.hidden = true;
 
   try {
-    const resp = await fetch("data/index_data.json");
+    const resp = await fetch("data/index_data.json?v=" + new Date().toISOString().slice(0, 10));
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const raw = await resp.json();
     DATA = transformJsonData(raw);
