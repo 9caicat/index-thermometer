@@ -24,7 +24,14 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
     }
-    .lab-toolbar .range-tabs { margin-left: auto; }
+    /* 读数条 + 周期切换同行（仅成本锚面板内） */
+    .lab-readout-wrap { display: flex; gap: 10px; align-items: stretch; }
+    .lab-readout-wrap .lab-readout { flex: 1; min-width: 0; }
+    .lab-readout-wrap .range-tabs { align-self: center; flex: 0 0 auto; }
+    @media (max-width: 900px) {
+      .lab-readout-wrap { flex-direction: column; }
+      .lab-readout-wrap .range-tabs { align-self: flex-end; }
+    }
     .lab-chips { display: flex; gap: 2px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 3px; padding: 2px; }
     .lab-chip {
       font-family: var(--font-zh);
@@ -188,14 +195,10 @@
 
   <main class="main container">
 
-    <!-- 工具栏：指数切换（全局联动）+ 周期切换（日线/周线） -->
-    <section class="block" aria-label="指数与周期切换">
+    <!-- 工具栏：指数切换（全局联动） -->
+    <section class="block" aria-label="指数切换">
       <div class="lab-toolbar">
         <div class="lab-chips" id="idxChips" role="tablist" aria-label="选择指数"></div>
-        <div class="range-tabs" role="tablist" aria-label="周期">
-          <button class="range-btn active" data-freq="D">日线</button>
-          <button class="range-btn" data-freq="W">周线</button>
-        </div>
       </div>
     </section>
 
@@ -222,7 +225,13 @@
 
           <div class="lab-intro">成本锚是什么？图表就三条线：200 日定投成本线、850 日长期成本线、月度210均线，代表中短期成本、长期成本和超长期成本的参考位置。（周线模式为 50 周 / 200 周）。黄线在红线上方，说明市场的短期持仓者整体浮盈；价格跌入红线下，说明连定投的人都被套；跌破蓝线，说明当前价格已经低于过去 3-4 年的持有均价，若价格跌破绿线，则意味市场可能将进入长期低估值区间。注意：所有指标仅供学习交流使用，不构成任何投资建议和依据！</div>
 
-          <div class="lab-readout" id="costReadout"></div>
+          <div class="lab-readout-wrap">
+            <div class="lab-readout" id="costReadout"></div>
+            <div class="range-tabs" role="tablist" aria-label="周期">
+              <button class="range-btn active" data-freq="D">日线</button>
+              <button class="range-btn" data-freq="W">周线</button>
+            </div>
+          </div>
 
           <div class="chart-card">
             <div class="chart-corners" aria-hidden="true">

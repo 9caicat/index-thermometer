@@ -294,12 +294,6 @@ function setActive(i, pushHash) {
 }
 
 /* ──────────────  指标 tab 切换（左侧定宽栏）  ───────────────────── */
-function syncFreqTabsVisibility() {
-  // 黄金乘数仅日线：切到 L2 时隐藏周期切换，切回 L1 恢复
-  const tabs = document.querySelector(".range-tabs");
-  if (tabs) tabs.style.display = state.ind === "ma850" ? "none" : "";
-}
-
 function bindIndTabs() {
   document.querySelectorAll(".lab-tab").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.ind === state.ind);
@@ -308,7 +302,6 @@ function bindIndTabs() {
   });
   document.getElementById("panel-cost").hidden = state.ind !== "cost";
   document.getElementById("panel-ma850").hidden = state.ind !== "ma850";
-  syncFreqTabsVisibility();
 }
 
 function setInd(ind, pushUrl) {
@@ -320,7 +313,6 @@ function setInd(ind, pushUrl) {
   });
   document.getElementById("panel-cost").hidden = ind !== "cost";
   document.getElementById("panel-ma850").hidden = ind !== "ma850";
-  syncFreqTabsVisibility();
   if (pushUrl && typeof URLSearchParams !== "undefined") {
     const q = new URLSearchParams(location.search);
     if (ind === "cost") q.delete("ind"); else q.set("ind", ind);
