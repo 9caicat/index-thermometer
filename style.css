@@ -1176,3 +1176,26 @@ header, main, footer { position: relative; z-index: 1; }
   transition: opacity 0.2s var(--ease);
 }
 a.brand:hover .brand-title-back { opacity: 1; }
+
+/* =========================================================================
+   ── Mobile fixes (≤767px)：头部防遮挡 / 页脚防溢出 / 图表加高好拖 ──
+   ========================================================================= */
+@media (max-width: 767px) {
+  /* 头部：品牌 + 查看更多指标 + 更新胶囊 一行放下，互不遮挡 */
+  .header-top { flex-wrap: wrap; row-gap: 10px; }
+  .brand-mark { width: 26px; height: 26px; }
+  .brand-title { font-size: 16px; }
+  .brand-alt { font-size: 14px; margin: 0 auto 0 10px; opacity: 0.55; }
+  .update-pill { padding: 6px 10px 6px 9px; gap: 7px; }
+  .update-label { display: none; }
+  .update-time { font-size: 11px; }
+
+  /* 页脚：二维码名片不超出屏幕右缘 */
+  .footer-author { max-width: 100%; gap: 12px; padding: 14px 16px; }
+  .footer-qr { width: 64px; height: 64px; flex: 0 0 auto; }
+  .footer-author-info { min-width: 0; }
+  .footer-author-tagline { white-space: normal; word-break: break-all; font-size: 11.5px; }
+
+  /* 温度走势图：加高，配合 app.js 的移动端边距/滑块 */
+  .chart-container { height: 420px; }
+}

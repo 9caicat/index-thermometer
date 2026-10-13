@@ -316,8 +316,6 @@ function renderAnalysis(d) {
   document.getElementById("a-cheaper").textContent = fmtInt(c.daysCheaper);
   document.getElementById("a-expensive").textContent = fmtInt(c.daysMoreExpensive);
 
-  document.getElementById("analysis-meta").textContent = `— ${d.name} · ${d.market}·${d.code.slice(2)}`;
-
   // Thermometer
   document.getElementById("a-thermo").innerHTML = buildThermometer(c.percentile, z.color);
 
@@ -339,6 +337,8 @@ function buildChartOption(d) {
   const dates = d.dates.slice(start);
   const tempSeries = d.temperature.slice(start);
   const priceSeries = d.prices.slice(start);
+  /* 移动端：收紧边距、缩小图例与阈值标签，底部滑块加高方便手指拖按 */
+  const mob = window.innerWidth <= 767 || "ontouchstart" in window;
 
   const bandColor = (key, alpha) => {
     const hex = ZONE[key].color.slice(1);
@@ -370,10 +370,10 @@ function buildChartOption(d) {
       formatter: label,
       position: "insideEndTop",
       color,
-      fontSize: 9,
+      fontSize: mob ? 8 : 9,
       fontFamily: "JetBrains Mono, monospace",
       backgroundColor: "rgba(14, 18, 25, 0.9)",
-      padding: [2, 5],
+      padding: mob ? [1, 4] : [2, 5],
       borderRadius: 2,
       distance: 2,
     },
@@ -394,7 +394,7 @@ function buildChartOption(d) {
     animation: true,
     animationDuration: 600,
     animationEasing: "cubicOut",
-    grid: { left: 48, right: 56, top: 46, bottom: 66, containLabel: false },
+    grid: { left: mob ? 40 : 48, right: mob ? 44 : 56, top: mob ? 40 : 46, bottom: mob ? 58 : 66, containLabel: false },
 
     /* Native legend (clickable to toggle series) */
     legend: {
@@ -403,13 +403,13 @@ function buildChartOption(d) {
       left: "center",
       textStyle: {
         color: "#8b95a8",
-        fontSize: 11,
+        fontSize: mob ? 10 : 11,
         fontFamily: "Geist, Noto Sans SC, sans-serif",
       },
       icon: "roundRect",
-      itemWidth: 14,
+      itemWidth: mob ? 12 : 14,
       itemHeight: 3,
-      itemGap: 22,
+      itemGap: mob ? 12 : 22,
       inactiveColor: "#3d4453",
     },
 
@@ -549,8 +549,9 @@ function buildChartOption(d) {
         xAxisIndex: 0,
         start: 0,
         end: 100,
-        height: 18,
-        bottom: 14,
+        height: mob ? 28 : 18,
+        bottom: mob ? 10 : 14,
+        handleSize: mob ? 26 : "100%",
         borderColor: "transparent",
         backgroundColor: "rgba(14, 18, 25, 0.4)",
         fillerColor: "rgba(245, 230, 196, 0.10)",
@@ -566,7 +567,7 @@ function buildChartOption(d) {
         moveHandleStyle: { color: "rgba(245, 230, 196, 0.25)" },
         textStyle: {
           color: "#8b95a8",
-          fontSize: 9,
+          fontSize: mob ? 10 : 9,
           fontFamily: "JetBrains Mono, monospace",
         },
         labelFormatter: (idx, v) => (v ? v.slice(0, 7) : ""),
