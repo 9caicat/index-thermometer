@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#080a0f" />
   <title>指标实验室 — 宽基温度计</title>
-  <meta name="description" content="宽基指数实验性指标验证页：成本锚（定投成本线与长期均线）、价格-情绪背离。主站温度指标原样保留，本页全部指标为新增。" />
+  <meta name="description" content="宽基指数实验性指标验证页：成本锚（定投成本线与长期均线）、850 黄金比例乘数带。主站温度指标原样保留，本页全部指标为新增。" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -24,6 +24,7 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
     }
+    .lab-toolbar .range-tabs { margin-left: auto; }
     .lab-chips { display: flex; gap: 2px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 3px; padding: 2px; }
     .lab-chip {
       font-family: var(--font-zh);
@@ -37,6 +38,51 @@
     .lab-chip:hover { color: var(--text); }
     .lab-chip.active { background: var(--text); color: var(--bg); }
     .lab-chip.active .mono { color: var(--bg); opacity: 0.65; }
+
+    /* ── 左侧定宽指标切换栏 ─────────────────────────────────── */
+    .lab-layout {
+      display: flex; gap: 18px; align-items: flex-start;
+    }
+    .lab-side {
+      flex: 0 0 176px; width: 176px;
+      position: sticky; top: 84px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .lab-tab {
+      display: flex; align-items: center; gap: 9px;
+      padding: 11px 12px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-left: 3px solid transparent;
+      border-radius: var(--radius);
+      font-family: var(--font-zh);
+      font-size: 13px; font-weight: 700; letter-spacing: 0.03em;
+      color: var(--text-muted);
+      cursor: pointer; text-align: left;
+      transition: all 0.2s var(--ease);
+    }
+    .lab-tab .lab-tab-num {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+      color: var(--text-dim); letter-spacing: 0.08em;
+    }
+    .lab-tab:hover { color: var(--text); border-color: var(--border-strong); }
+    .lab-tab.active {
+      color: var(--text);
+      background: var(--bg-elev-2);
+      border-left-color: var(--z-warm);
+    }
+    .lab-tab.active .lab-tab-num { color: var(--z-warm); }
+    .lab-main { flex: 1; min-width: 0; }
+    .lab-panel[hidden] { display: none; }
+    @media (max-width: 900px) {
+      .lab-layout { flex-direction: column; }
+      .lab-side {
+        position: static; width: 100%; flex: none;
+        flex-direction: row; overflow-x: auto; padding-bottom: 2px;
+      }
+      .lab-tab { white-space: nowrap; }
+    }
+
     .lab-intro {
       padding: 10px 14px;
       background: var(--bg-elev);
@@ -81,6 +127,34 @@
     @media (max-width: 760px) {
       .lab-divrow { grid-template-columns: 84px 70px 64px 48px 54px 62px 62px 62px 60px; font-size: 11px; padding: 8px 8px; }
     }
+
+    /* ── 图表高度（桌面/移动） ────────────────────────────── */
+    #costChart, #ma850Chart { height: 560px; }
+    @media (max-width: 760px) {
+      #costChart, #ma850Chart { height: 400px; }
+    }
+
+    /* ── 移动端适配 ─────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .lab-toolbar { padding: 8px 10px; gap: 8px; }
+      .lab-chips {
+        overflow-x: auto; max-width: 100%; flex-wrap: nowrap;
+        scrollbar-width: none; -webkit-overflow-scrolling: touch;
+      }
+      .lab-chips::-webkit-scrollbar { display: none; }
+      .lab-chip { flex: 0 0 auto; padding: 6px 10px; font-size: 11.5px; }
+    }
+    @media (max-width: 760px) {
+      .lab-pagetitle { font-size: 15px; margin-left: 6px; }
+      .site-header .brand-title { font-size: 15px; letter-spacing: 0.02em; }
+      .site-header .brand-mark { width: 20px; height: 20px; flex: 0 0 auto; }
+      .site-header .brand { gap: 6px; min-width: 0; }
+      .lab-intro { font-size: 12.5px; padding: 10px 12px; line-height: 1.8; }
+      .lab-readout { padding: 8px 10px; gap: 6px; }
+      .lab-stat .v { font-size: 13px; }
+      .lab-tab { padding: 9px 10px; font-size: 12px; }
+      .range-tabs .range-btn { padding: 5px 12px; }
+    }
   </style>
 </head>
 <body>
@@ -114,54 +188,103 @@
 
   <main class="main container">
 
-    <!-- 工具栏：指数切换（全局联动）+ 返回主站 -->
-    <section class="block" aria-label="指数切换">
+    <!-- 工具栏：指数切换（全局联动）+ 周期切换（日线/周线） -->
+    <section class="block" aria-label="指数与周期切换">
       <div class="lab-toolbar">
         <div class="lab-chips" id="idxChips" role="tablist" aria-label="选择指数"></div>
-      </div>
-    </section>
-
-    <!-- ─────────── L1 · 成本锚 ─────────── -->
-    <section class="block" aria-labelledby="cost-label">
-      <div class="block-head">
-        <span class="block-num">L1</span>
-        <h2 class="block-label" id="cost-label">成本锚 <span class="block-label-en">/ COST ANCHOR</span></h2>
         <div class="range-tabs" role="tablist" aria-label="周期">
           <button class="range-btn active" data-freq="D">日线</button>
           <button class="range-btn" data-freq="W">周线</button>
         </div>
       </div>
-
-      <div class="lab-intro">成本锚是什么？图表就三条线：收盘价、200 日定投成本线、850 日长期成本线（周线模式为 50 周 / 200 周）。黄线在红线上方，说明市场的短期持仓者整体浮盈；价格跌入红线下，说明连定投的人都被套；跌破蓝线，说明当前价格已经低于过去 3-4 年的持有均价。注意：所有指标仅供学习交流使用，不构成任何投资建议和依据！</div>
-
-      <div class="lab-readout" id="costReadout"></div>
-
-      <div class="chart-card">
-        <div class="chart-corners" aria-hidden="true">
-          <span class="ct-corner tl"></span><span class="ct-corner tr"></span>
-          <span class="ct-corner bl"></span><span class="ct-corner br"></span>
-        </div>
-        <div class="chart-container" id="costChart" style="height:560px"></div>
-      </div>
-
-      <details class="risk-warning" open>
-        <summary>
-          <span class="warning-icon" aria-hidden="true">i</span>
-          <span class="warning-text">成本锚 · 理论依据 <span class="block-label-en">/ THEORY</span></span>
-          <span class="chevron" aria-hidden="true">›</span>
-        </summary>
-        <div class="lab-theory">
-          <p><strong>宏观背景。</strong>200 日（约一年）覆盖一轮货币与库存周期；850 日（约 3.5 年）跨越一轮完整的信贷周期；50 周与 200 周是同一逻辑的周线版，采样更稀、曲线更平滑，适合判定大级别牛熊。成本线的斜率由宏观周期决定：持续上翘对应扩张期，走平下弯对应收缩期。</p>
-          <p><strong>微观结构。</strong>价格与成本线的关系，就是市场平均持仓者的浮盈浮亏状态——价格在成本线上方时，整体浮盈、情绪偏热，偏离过大易回踩；在下方时，整体浮亏、割肉动力衰竭、情绪偏冷，价格线随之由黄转蓝。850 日线与 200 周线是牛熊分水岭：线上运行趋势向上，有效跌破趋势走坏，回踩不破即是支撑。价格高于短期成本、短期成本高于长期成本，构成多头排列，反之为空头排列。</p>
-        </div>
-      </details>
     </section>
+
+    <!-- ─────────── 左侧指标切换 + 右侧指标面板 ─────────── -->
+    <div class="lab-layout">
+
+      <nav class="lab-side" role="tablist" aria-label="指标切换">
+        <button class="lab-tab active" data-ind="cost" role="tab" aria-selected="true">
+          <span class="lab-tab-num">L1</span><span class="lab-tab-name">成本锚</span>
+        </button>
+        <button class="lab-tab" data-ind="ma850" role="tab" aria-selected="false">
+          <span class="lab-tab-num">L2</span><span class="lab-tab-name">850黄金乘数</span>
+        </button>
+      </nav>
+
+      <div class="lab-main">
+
+        <!-- ─────────── L1 · 成本锚 ─────────── -->
+        <section class="block lab-panel" id="panel-cost" aria-labelledby="cost-label">
+          <div class="block-head">
+            <span class="block-num">L1</span>
+            <h2 class="block-label" id="cost-label">成本锚 <span class="block-label-en">/ COST ANCHOR</span></h2>
+          </div>
+
+          <div class="lab-intro">成本锚是什么？图表就三条线：200 日定投成本线、850 日长期成本线、月度210均线，代表中短期成本、长期成本和超长期成本的参考位置。（周线模式为 50 周 / 200 周）。黄线在红线上方，说明市场的短期持仓者整体浮盈；价格跌入红线下，说明连定投的人都被套；跌破蓝线，说明当前价格已经低于过去 3-4 年的持有均价，若价格跌破绿线，则意味市场可能将进入长期低估值区间。注意：所有指标仅供学习交流使用，不构成任何投资建议和依据！</div>
+
+          <div class="lab-readout" id="costReadout"></div>
+
+          <div class="chart-card">
+            <div class="chart-corners" aria-hidden="true">
+              <span class="ct-corner tl"></span><span class="ct-corner tr"></span>
+              <span class="ct-corner bl"></span><span class="ct-corner br"></span>
+            </div>
+            <div class="chart-container" id="costChart"></div>
+          </div>
+
+          <details class="risk-warning" open>
+            <summary>
+              <span class="warning-icon" aria-hidden="true">i</span>
+              <span class="warning-text">成本锚 · 指标说明 <span class="block-label-en">/ NOTES</span></span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </summary>
+            <div class="lab-theory">
+              <p><strong>宏观背景。</strong>200 日（约一年）覆盖一轮货币与库存周期；850 日（约 3.5 年）跨越一轮完整的信贷周期；50 周与 200 周是同一逻辑的周线版，采样更稀、曲线更平滑，适合判定大级别牛熊。成本线的斜率由宏观周期决定：持续上翘对应扩张期，走平下弯对应收缩期。</p>
+              <p><strong>微观结构。</strong>价格与成本线的关系，就是市场平均持仓者的浮盈浮亏状态——价格在成本线上方时，整体浮盈、情绪偏热，偏离过大易回踩；在下方时，整体浮亏、割肉动力衰竭、情绪偏冷，价格线随之由黄转蓝。850 日线与 200 周线是牛熊分水岭：线上运行趋势向上，有效跌破趋势走坏，回踩不破即是支撑。价格高于短期成本、短期成本高于长期成本，构成多头排列，反之为空头排列。</p>
+            </div>
+          </details>
+        </section>
+
+        <!-- ─────────── L2 · 850 黄金乘数 ─────────── -->
+        <section class="block lab-panel" id="panel-ma850" aria-labelledby="ma850-label" hidden>
+          <div class="block-head">
+            <span class="block-num">L2</span>
+            <h2 class="block-label" id="ma850-label">850黄金乘数 <span class="block-label-en">/ GOLDEN MULTIPLIER</span></h2>
+          </div>
+
+          <div class="lab-intro">850 黄金乘数是什么？以 850 日均线为价值中枢，向上将价格相对长期均价的上行偏离，转化为直观的倍数刻度，得到 1.6 倍、2 倍、3 倍、5 倍四条乘数带。价格越靠近上方的乘数带，说明相对长期均值偏离越大，切不可简单理解为交易信号。注意：所有指标仅供学习交流使用，不构成任何投资建议和依据！</div>
+
+          <div class="lab-readout" id="ma850Readout"></div>
+
+          <div class="chart-card">
+            <div class="chart-corners" aria-hidden="true">
+              <span class="ct-corner tl"></span><span class="ct-corner tr"></span>
+              <span class="ct-corner bl"></span><span class="ct-corner br"></span>
+            </div>
+            <div class="chart-container" id="ma850Chart"></div>
+          </div>
+
+          <details class="risk-warning" open>
+            <summary>
+              <span class="warning-icon" aria-hidden="true">i</span>
+              <span class="warning-text">850黄金乘数 · 指标说明 <span class="block-label-en">/ NOTES</span></span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </summary>
+            <div class="lab-theory">
+              <p><strong>宏观背景。</strong>850 日（约 3.5 年）跨越一轮完整的信贷与产能周期，其均线可视作指数的长期价值中枢；价格相对中枢的倍数偏离由流动性与风险偏好驱动，具有显著的均值回归特征。乘数 1.6 / 2 / 3 / 5 取自黄金分割与历史极值统计：1.6 近似黄金比例 φ，2 与 3 对应历史上阶段性顶部常见的偏离区间，5 则标记极端泡沫。</p>
+              <p><strong>使用方法。</strong>价格运行于均线下方为低估区；均线至 1.6 倍为合理区；1.6 至 2 倍偏热、2 至 3 倍高热，应逐步降低追涨意愿；触及 3 倍以上进入泡沫区，历史上多对应大级别顶部区域，宜分批兑现而非加仓；跌回均线附近则是长期资金的分批布局区。乘数带随均线每日平移，斜率向上时顶部阈值同步抬升，斜率走平下弯时警惕带内假突破。</p>
+            </div>
+          </details>
+        </section>
+
+      </div>
+    </div>
 
   </main>
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <p class="footer-main">指标实验室 · 主站温度指标原样保留，本页指标均为新增实验 · 每日 16:10 随主站数据自动更新</p>
+      <p class="footer-main">指标实验室 · 主站温度指标原样保留，本页指标均为新增实验 · 每日 16:03 随主站数据自动更新</p>
       <p class="footer-mock">⚠ 实验指标有效性仍在验证中，仅供学习交流，不构成投资建议</p>
     </div>
   </footer>

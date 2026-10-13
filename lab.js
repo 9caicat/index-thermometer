@@ -91,6 +91,32 @@ function resampleWeekly(dates, prices) {
   return { wdates, wpx };
 }
 
+/** 日线 → 月线重采样：每月最后一个交易日收盘价 */
+function resampleMonthly(dates, prices) {
+  const mdates = [], mpx = [];
+  let lastKey = null;
+  for (let i = 0; i < dates.length; i++) {
+    const k = dates[i].slice(0, 7); // YYYY-MM
+    if (k !== lastKey) { mdates.push(dates[i]); mpx.push(prices[i]); lastKey = k; }
+    else { mdates[mdates.length - 1] = dates[i]; mpx[mpx.length - 1] = prices[i]; }
+  }
+  return { mdates, mpx };
+}
+
+/** 把月末序列前向填充对齐到任意日期轴（阶梯线效果） */
+function alignMonthlyToDates(dates, mdates, mvals) {
+  const out = new Array(dates.length).fill(null);
+  let mi = 0, last = null;
+  for (let i = 0; i < dates.length; i++) {
+    while (mi < mdates.length && mdates[mi] <= dates[i]) {
+      if (mvals[mi] !== null) last = mvals[mi];
+      mi++;
+    }
+    out[i] = last;
+  }
+  return out;
+}
+
 /** 摆动极值点：w 日极值，间隔 >= gap，区间内取更极端者 */
 function swingPoints(v, find, w = 45, gap = 45) {
   const idxs = [];
@@ -166,7 +192,8 @@ function bandPolygons(dates, price, base, above) {
 }
 
 const CALC = { rollingHarmonic, rollingMean, expandingPercentile, rollingPercentile,
-               isoWeekKey, resampleWeekly, swingPoints, findEvents, bandPolygons };
+               isoWeekKey, resampleWeekly, resampleMonthly, alignMonthlyToDates,
+               swingPoints, findEvents, bandPolygons };
 const _g = typeof window !== "undefined" ? window : globalThis;
 _g.LAB_CALC = CALC;
 if (typeof module !== "undefined" && module.exports) module.exports = CALC;
@@ -219,8 +246,10 @@ async function loadAndInit() {
 const state = {
   activeIdx: 0,
   freq: (typeof location !== "undefined" && new URLSearchParams(location.search).get("freq") === "W") ? "W" : "D",
+  ind: (typeof location !== "undefined" && new URLSearchParams(location.search).get("ind") === "ma850") ? "ma850" : "cost",
 };
 let costChart = null;
+let ma850Chart = null;
 
 const fmtSigned = (v, digits = 1) => (v > 0 ? "+" : "") + v.toFixed(digits) + "%";
 /* 每指数预计算 */
@@ -233,7 +262,9 @@ function enrichAll() {
     const { wdates, wpx } = resampleWeekly(d.dates, px);
     const ma50w = rollingMean(wpx, 50);
     const ma200w = rollingMean(wpx, 200);
-    enriched.push({ ...d, px, hm200, ma850, wdates, wpx, ma50w, ma200w });
+    const { mdates, mpx } = resampleMonthly(d.dates, px);
+    const ma210m = rollingMean(mpx, 210);   // 月度 210 均线 · 超长期成本
+    enriched.push({ ...d, px, hm200, ma850, wdates, wpx, ma50w, ma200w, mdates, mpx, ma210m });
   });
 }
 
@@ -242,11 +273,11 @@ function renderChips() {
   const host = document.getElementById("idxChips");
   host.innerHTML = "";
   enriched.forEach((d, i) => {
-    const temp = [...d.temperature].reverse().find(v => v != null);
+    const last = [...d.prices].reverse().find(v => v != null);
     const b = document.createElement("button");
     b.className = "lab-chip" + (i === state.activeIdx ? " active" : "");
     b.setAttribute("aria-pressed", i === state.activeIdx ? "true" : "false");
-    b.innerHTML = `${d.name}<span class="mono">${temp != null ? Math.round(temp) + "°" : "--"}</span>`;
+    b.innerHTML = `${d.name}<span class="mono">${last != null ? last.toLocaleString("en-US", { maximumFractionDigits: 2 }) : "--"}</span>`;
     b.onclick = () => setActive(i, true);
     host.appendChild(b);
   });
@@ -259,13 +290,52 @@ function setActive(i, pushHash) {
     c.classList.toggle("active", j === i);
     c.setAttribute("aria-pressed", j === i ? "true" : "false");
   });
-  renderCost();
+  renderActive();
 }
 
-/* ──────────────  成本锚图表  ───────────────────────────────────── */
-/* ──────────────  成本锚图表  ─────────────────────────────────────
-   配色借鉴 CoinGlass 风格：价格线按「线上=浮盈(琥珀)/线下=浮亏(蓝)」
-   分段变色，成本线用高饱和实线，远线用亮色实线保证对比度。 */
+/* ──────────────  指标 tab 切换（左侧定宽栏）  ───────────────────── */
+function syncFreqTabsVisibility() {
+  // 黄金乘数仅日线：切到 L2 时隐藏周期切换，切回 L1 恢复
+  const tabs = document.querySelector(".range-tabs");
+  if (tabs) tabs.style.display = state.ind === "ma850" ? "none" : "";
+}
+
+function bindIndTabs() {
+  document.querySelectorAll(".lab-tab").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.ind === state.ind);
+    btn.setAttribute("aria-selected", btn.dataset.ind === state.ind ? "true" : "false");
+    btn.addEventListener("click", () => setInd(btn.dataset.ind, true));
+  });
+  document.getElementById("panel-cost").hidden = state.ind !== "cost";
+  document.getElementById("panel-ma850").hidden = state.ind !== "ma850";
+  syncFreqTabsVisibility();
+}
+
+function setInd(ind, pushUrl) {
+  state.ind = ind;
+  document.querySelectorAll(".lab-tab").forEach(b => {
+    const on = b.dataset.ind === ind;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  document.getElementById("panel-cost").hidden = ind !== "cost";
+  document.getElementById("panel-ma850").hidden = ind !== "ma850";
+  syncFreqTabsVisibility();
+  if (pushUrl && typeof URLSearchParams !== "undefined") {
+    const q = new URLSearchParams(location.search);
+    if (ind === "cost") q.delete("ind"); else q.set("ind", ind);
+    const qs = q.toString();
+    history.replaceState(null, "", location.pathname + (qs ? "?" + qs : "") + location.hash);
+  }
+  renderActive();
+}
+
+function renderActive() {
+  if (state.ind === "ma850") renderMa850();
+  else renderCost();
+}
+
+/* ──────────────  图表公共  ─────────────────────────────────────── */
 /** 把纵轴边界取整到 1-2-2.5-5 式的漂亮刻度 */
 function niceBounds(lo, hi) {
   const r = (x, dir) => {
@@ -279,10 +349,136 @@ function niceBounds(lo, hi) {
   return { min: Math.max(1, r(lo, -1)), max: r(hi, +1) };
 }
 
+/** 预览在 iframe 里时，鼠标拖出窗口才松开会导致图表收不到 mouseup、停在拖拽态跟随鼠标；
+    指针离开页面时补发一个 mouseup 兜底 */
+function attachMouseupFix(hostId) {
+  document.addEventListener("mouseleave", () => {
+    const host = document.getElementById(hostId);
+    if (!host) return;
+    ["mouseup", "pointerup"].forEach(type => {
+      try { host.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, button: 0 })); } catch (_) {}
+    });
+  });
+}
+
+/** 锁定收盘价序列：图例点击不可隐藏价格线（其余序列保持可切换） */
+function attachPriceLock(chart) {
+  chart.on("legendselectchanged", (e) => {
+    const sel = e.selected || {};
+    if (sel["收盘价"] === false) {
+      chart.setOption({ legend: { selected: { "收盘价": true } } });
+    }
+  });
+}
+
+/** 缩放/平移时纵轴自适应可见区间（TradingView 风格） */
+function attachZoomAdaptive(chart, getArrays) {
+  chart.on("datazoom", () => {
+    const dz = chart.getOption().dataZoom[0];
+    const arrays = getArrays();
+    const n = arrays[0].length;
+    const lo = Math.max(0, Math.floor(n * dz.start / 100));
+    const hi = Math.min(n - 1, Math.ceil(n * dz.end / 100));
+    let mn = Infinity, mx = 0;
+    for (const arr of arrays) {
+      for (let i = lo; i <= hi; i++) {
+        const v = arr[i];
+        if (v !== null && v > 0) { if (v < mn) mn = v; if (v > mx) mx = v; }
+      }
+    }
+    if (!isFinite(mn) || mx <= mn) return;
+    const b = niceBounds(mn * 0.96, mx * 1.04);
+    chart.setOption({ yAxis: [{ min: b.min, max: b.max }, { min: b.min, max: b.max }] });
+  });
+}
+
+function baseYAxis(initBounds) {
+  return {
+    type: "log", logBase: 10,
+    min: initBounds.min, max: initBounds.max,
+    axisLine: { show: false }, axisTick: { show: false },
+    axisLabel: {
+      color: "#4d5666", fontSize: 10, fontFamily: "JetBrains Mono, monospace",
+      formatter: (v) => v >= 1000 ? v.toLocaleString("en-US") : String(v),
+    },
+    splitLine: { lineStyle: { color: "rgba(255,255,255,0.035)" } },
+  };
+}
+
+function baseXAxis() {
+  return {
+    type: "time",
+    axisLine: { lineStyle: { color: "rgba(255,255,255,0.08)" } },
+    axisTick: { show: false },
+    axisLabel: {
+      color: "#4d5666", fontSize: 10, fontFamily: "JetBrains Mono, monospace",
+      formatter: (v) => { const dt = new Date(v); return isFinite(dt) ? String(dt.getUTCFullYear()) : ""; },
+      hideOverlap: true,
+    },
+    splitLine: { show: false },
+  };
+}
+
+/* 移动端判定：加高加粗底部滑块，方便手指拖按 */
+const IS_MOBILE = typeof window !== "undefined" && typeof window.matchMedia === "function" &&
+  (window.matchMedia("(max-width: 760px)").matches || "ontouchstart" in window);
+
+function baseDataZoom() {
+  return [
+    { type: "inside", xAxisIndex: 0, start: 0, end: 100 },
+    {
+      type: "slider", xAxisIndex: 0, start: 0, end: 100,
+      height: IS_MOBILE ? 30 : 18, bottom: IS_MOBILE ? 8 : 12,
+      handleSize: IS_MOBILE ? 26 : "100%",
+      borderColor: "transparent", backgroundColor: "rgba(14,18,25,0.4)",
+      fillerColor: "rgba(245,230,196,0.10)",
+      dataBackground: { areaStyle: { color: "rgba(103,232,249,0.18)" }, lineStyle: { color: "rgba(103,232,249,0.4)", width: 0.8 } },
+      selectedDataBackground: { areaStyle: { color: "rgba(245,230,196,0.22)" }, lineStyle: { color: "rgba(245,230,196,0.6)", width: 0.8 } },
+      handleStyle: { color: "#f5e6c4", borderColor: "transparent", opacity: 0.9 },
+      moveHandleSize: 0,   // 禁用移动把手：避免点击后进入「跟随鼠标」模式
+      textStyle: { color: "#8b95a8", fontSize: IS_MOBILE ? 10 : 9, fontFamily: "JetBrains Mono, monospace" },
+    },
+  ];
+}
+
+function baseTooltipStyle() {
+  return {
+    backgroundColor: "rgba(14, 18, 25, 0.97)",
+    borderColor: "rgba(255,255,255,0.18)", borderWidth: 1, padding: [10, 12],
+    textStyle: { color: "#f6f8fb", fontSize: 12, fontFamily: "Geist, Noto Sans SC, sans-serif" },
+    axisPointer: { type: "line", lineStyle: { color: "rgba(245,230,196,0.5)", width: 1 } },
+  };
+}
+
+function baseLegend(data) {
+  return {
+    data,
+    top: 8, left: "center",
+    textStyle: { color: "#8b95a8", fontSize: IS_MOBILE ? 10 : 11, fontFamily: "Geist, Noto Sans SC, sans-serif" },
+    icon: "roundRect", itemWidth: IS_MOBILE ? 12 : 14, itemHeight: 3, itemGap: IS_MOBILE ? 10 : 20,
+    inactiveColor: "#3d4453",
+  };
+}
+
+function fullExtentBounds(arrays) {
+  let yMin = Infinity, yMax = 0;
+  for (const arr of arrays) {
+    for (const v of arr) {
+      if (v !== null && v > 0) { if (v < yMin) yMin = v; if (v > yMax) yMax = v; }
+    }
+  }
+  return niceBounds(yMin * 0.96, yMax * 1.04);
+}
+
+/* ──────────────  成本锚图表  ─────────────────────────────────────
+   配色借鉴 CoinGlass 风格：价格线按「线上=浮盈(琥珀)/线下=浮亏(蓝)」
+   分段变色，成本线用高饱和实线，远线用亮色实线保证对比度。 */
 const C_PRICE_ABOVE = "#fbbf24";  // 黄（不变）：价格在成本线上方
 const C_PRICE_BELOW = "#38bdf8";  // 亮蓝：价格在成本线下方
 const C_NEAR = "#f472b6";         // 玫红：近端成本线（定投线/50周线）
 const C_FAR = "#a78bfa";          // 紫：远端成本线（850日线/200周线）
+const C_MONTH = "#22c55e";        // 绿：210月均线（超长期成本）
+const MONTH_NAME = "210月均线 · 超长期成本";
 
 function buildCostOption(d) {
   const weekly = state.freq === "W";
@@ -290,6 +486,7 @@ function buildCostOption(d) {
   const px = weekly ? d.wpx : d.px;
   const near = weekly ? d.ma50w : d.hm200;     // 近端成本线
   const far = weekly ? d.ma200w : d.ma850;     // 远端成本线
+  const month = alignMonthlyToDates(dates, d.mdates, d.ma210m);  // 210月均线（阶梯对齐）
   const nearName = weekly ? "50周线 · 一年成本" : "定投成本线 · 200日调和";
   const farName = weekly ? "200周线 · 四年成本" : "850日均线 · 3.5年成本";
 
@@ -301,41 +498,21 @@ function buildCostOption(d) {
   });
   const nearPairs = dates.map((t, i) => [t, near[i]]);
   const farPairs = dates.map((t, i) => [t, far[i]]);
+  const monthPairs = dates.map((t, i) => [t, month[i]]);
 
   // 初始纵轴范围 = 全部数据极值 ±8% 边距（收紧到数据本身，不取 10 的整次幂）
-  let yMin = Infinity, yMax = 0;
-  for (const arr of [px, near, far]) {
-    for (const v of arr) {
-      if (v !== null && v > 0) { if (v < yMin) yMin = v; if (v > yMax) yMax = v; }
-    }
-  }
-  const initBounds = niceBounds(yMin * 0.96, yMax * 1.04);
-  const yAxisBase = {
-    type: "log", logBase: 10,
-    min: initBounds.min, max: initBounds.max,
-    axisLine: { show: false }, axisTick: { show: false },
-    axisLabel: {
-      color: "#4d5666", fontSize: 10, fontFamily: "JetBrains Mono, monospace",
-      formatter: (v) => v >= 1000 ? v.toLocaleString("en-US") : String(v),
-    },
-    splitLine: { lineStyle: { color: "rgba(255,255,255,0.035)" } },
-  };
+  const initBounds = fullExtentBounds([px, near, far, month]);
+  const yAxisBase = baseYAxis(initBounds);
 
   return {
     backgroundColor: "transparent",
     animation: false,
     grid: { left: 56, right: 56, top: 42, bottom: 62 },
-    legend: {
-      data: ["收盘价", nearName, farName],
-      top: 8, left: "center",
-      textStyle: { color: "#8b95a8", fontSize: 11, fontFamily: "Geist, Noto Sans SC, sans-serif" },
-      icon: "roundRect", itemWidth: 14, itemHeight: 3, itemGap: 20,
-      inactiveColor: "#3d4453",
-    },
+    legend: baseLegend(["收盘价", nearName, farName, MONTH_NAME]),
     visualMap: {
       show: false,
       type: "piecewise",
-      seriesIndex: 2,          // 收盘价序列
+      seriesIndex: 3,          // 收盘价序列
       dimension: 2,            // 按第三维（线上/线下状态）着色
       pieces: [
         { min: 0.5, max: 1.5, color: C_PRICE_ABOVE },
@@ -344,13 +521,11 @@ function buildCostOption(d) {
     },
     tooltip: {
       trigger: "axis",
-      backgroundColor: "rgba(14, 18, 25, 0.97)",
-      borderColor: "rgba(255,255,255,0.18)", borderWidth: 1, padding: [10, 12],
-      textStyle: { color: "#f6f8fb", fontSize: 12, fontFamily: "Geist, Noto Sans SC, sans-serif" },
+      ...baseTooltipStyle(),
       formatter: (params) => {
         const date = params[0].axisValueLabel;
         const get = (name) => { const p = params.find(x => x.seriesName === name); return p ? p.value[1] : null; };
-        const p = get("收盘价"), n = get(nearName), f = get(farName);
+        const p = get("收盘价"), n = get(nearName), f = get(farName), m = get(MONTH_NAME);
         let html = `<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8b95a8;letter-spacing:0.08em;margin-bottom:8px;">${date}</div>`;
         const stateTxt = (p == null || n == null) ? "" : (p >= n
           ? `<span style="font-size:10px;color:${C_PRICE_ABOVE};">线上 · 定投者浮盈 ${fmtSigned((p / n - 1) * 100, 2)}</span>`
@@ -366,39 +541,20 @@ function buildCostOption(d) {
         html += stateTxt;
         html += row(nearName, n, C_NEAR, p);
         html += row(farName, f, C_FAR, p);
+        html += row(MONTH_NAME, m, C_MONTH, p);
         return html;
       },
-      axisPointer: { type: "line", lineStyle: { color: "rgba(245,230,196,0.5)", width: 1 } },
     },
-    xAxis: {
-      type: "time",
-      axisLine: { lineStyle: { color: "rgba(255,255,255,0.08)" } },
-      axisTick: { show: false },
-      axisLabel: {
-        color: "#4d5666", fontSize: 10, fontFamily: "JetBrains Mono, monospace",
-        formatter: (v) => { const dt = new Date(v); return isFinite(dt) ? String(dt.getUTCFullYear()) : ""; },
-        hideOverlap: true,
-      },
-      splitLine: { show: false },
-    },
+    xAxis: baseXAxis(),
     yAxis: [
       { ...yAxisBase, position: "left" },
       { ...yAxisBase, position: "right", splitLine: { show: false } },
     ],
-    dataZoom: [
-      { type: "inside", xAxisIndex: 0, start: 0, end: 100 },
-      {
-        type: "slider", xAxisIndex: 0, start: 0, end: 100, height: 18, bottom: 12,
-        borderColor: "transparent", backgroundColor: "rgba(14,18,25,0.4)",
-        fillerColor: "rgba(245,230,196,0.10)",
-        dataBackground: { areaStyle: { color: "rgba(103,232,249,0.18)" }, lineStyle: { color: "rgba(103,232,249,0.4)", width: 0.8 } },
-        selectedDataBackground: { areaStyle: { color: "rgba(245,230,196,0.22)" }, lineStyle: { color: "rgba(245,230,196,0.6)", width: 0.8 } },
-        handleStyle: { color: "#f5e6c4", borderColor: "transparent", opacity: 0.9 },
-        moveHandleSize: 0,   // 禁用移动把手：避免点击后进入「跟随鼠标」模式
-        textStyle: { color: "#8b95a8", fontSize: 9, fontFamily: "JetBrains Mono, monospace" },
-      },
-    ],
+    dataZoom: baseDataZoom(),
     series: [
+      { name: MONTH_NAME, type: "line", data: monthPairs, showSymbol: false, sampling: "lttb",
+        lineStyle: { color: C_MONTH, width: 1.4 },
+        itemStyle: { color: C_MONTH }, z: 2 },
       { name: farName, type: "line", data: farPairs, showSymbol: false, sampling: "lttb",
         lineStyle: { color: C_FAR, width: 1.3 },
         itemStyle: { color: C_FAR }, z: 2 },
@@ -417,34 +573,15 @@ function renderCost() {
   const d = enriched[state.activeIdx];
   if (!costChart) {
     costChart = echarts.init(document.getElementById("costChart"), null, { renderer: "canvas" });
-    // 预览在 iframe 里时，鼠标拖出窗口才松开会导致图表收不到 mouseup、停在拖拽态跟随鼠标；
-    // 指针离开页面时补发一个 mouseup 兜底
-    document.addEventListener("mouseleave", () => {
-      const host = document.getElementById("costChart");
-      ["mouseup", "pointerup"].forEach(type => {
-        try { host.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, button: 0 })); } catch (_) {}
-      });
-    });
-    // 缩放/平移时纵轴自适应可见区间（TradingView 风格），解决长历史纵向压缩问题
-    costChart.on("datazoom", () => {
+    attachMouseupFix("costChart");
+    attachPriceLock(costChart);
+    attachZoomAdaptive(costChart, () => {
       const cur = enriched[state.activeIdx];
-      const dz = costChart.getOption().dataZoom[0];
-      const arrays = state.freq === "W"
-        ? [cur.wpx, cur.ma50w, cur.ma200w]
-        : [cur.px, cur.hm200, cur.ma850];
-      const n = arrays[0].length;
-      const lo = Math.max(0, Math.floor(n * dz.start / 100));
-      const hi = Math.min(n - 1, Math.ceil(n * dz.end / 100));
-      let mn = Infinity, mx = 0;
-      for (const arr of arrays) {
-        for (let i = lo; i <= hi; i++) {
-          const v = arr[i];
-          if (v !== null && v > 0) { if (v < mn) mn = v; if (v > mx) mx = v; }
-        }
-      }
-      if (!isFinite(mn) || mx <= mn) return;
-      const b = niceBounds(mn * 0.96, mx * 1.04);
-      costChart.setOption({ yAxis: [{ min: b.min, max: b.max }, { min: b.min, max: b.max }] });
+      const dates = state.freq === "W" ? cur.wdates : cur.dates;
+      const month = alignMonthlyToDates(dates, cur.mdates, cur.ma210m);
+      return state.freq === "W"
+        ? [cur.wpx, cur.ma50w, cur.ma200w, month]
+        : [cur.px, cur.hm200, cur.ma850, month];
     });
   }
   costChart.setOption(buildCostOption(d), true);
@@ -453,9 +590,12 @@ function renderCost() {
   const weekly = state.freq === "W";
   const near = weekly ? d.ma50w : d.hm200;
   const far = weekly ? d.ma200w : d.ma850;
+  const dates = weekly ? d.wdates : d.dates;
+  const month = alignMonthlyToDates(dates, d.mdates, d.ma210m);
   const nI = [...near].map((v, i) => v === null ? -1 : i).reduce((a, b) => Math.max(a, b));
   const fI = [...far].map((v, i) => v === null ? -1 : i).reduce((a, b) => Math.max(a, b));
-  const p = d.px[d.px.length - 1], nv = near[nI], fv = far[fI];
+  const mI = [...month].map((v, i) => v === null ? -1 : i).reduce((a, b) => Math.max(a, b));
+  const p = d.px[d.px.length - 1], nv = near[nI], fv = far[fI], mv = month[mI];
   const stat = (label, base) => {
     if (base == null || p == null) return "";
     const dev = (p / base - 1) * 100;
@@ -468,6 +608,139 @@ function renderCost() {
     stat(weekly ? "偏离 50周线" : "偏离 定投线", nv) +
     `<span class="lab-sep">·</span>` +
     stat(weekly ? "偏离 200周线" : "偏离 850日线", fv) +
+    `<span class="lab-sep">·</span>` +
+    stat("偏离 210月线", mv) +
+``;
+}
+
+/* ──────────────  MA850 黄金乘数图表（仅日线）  ───────────────────
+   对应 TradingView Pine：850 日均线 + ×1.6 / ×2 / ×3 / ×5 乘数带。 */
+const C_MA850 = "#3b82f6";        // 蓝：850 均线（Pine color.blue）
+const C_X16 = "#ef4444";          // 红：1.6 倍（Pine color.red）
+const C_X2 = "#22c55e";           // 绿：2 倍（Pine color.green）
+const C_X3 = "#f97316";           // 橙：3 倍（Pine color.orange）
+const C_X5 = "#db42a1";           // 品红：5 倍（Pine rgb(219,66,161)）
+const C_MA_PRICE = "#fbbf24";     // 琥珀：收盘价
+
+/** 当前价位所处乘数带 */
+function multiplierZone(p, b) {
+  if (p == null || b == null) return null;
+  if (p < b)        return { txt: "均线下方 · 低估区", cls: "neg" };
+  if (p < b * 1.6)  return { txt: "均线 ~ 1.6倍 · 合理区", cls: "pos" };
+  if (p < b * 2)    return { txt: "1.6 ~ 2倍 · 偏热", cls: "pos" };
+  if (p < b * 3)    return { txt: "2 ~ 3倍 · 高热", cls: "pos" };
+  if (p < b * 5)    return { txt: "3 ~ 5倍 · 泡沫区", cls: "pos" };
+  return { txt: "高于 5倍 · 极热", cls: "pos" };
+}
+
+function buildMa850Option(d) {
+  const dates = d.dates;
+  const px = d.px;
+  const base = d.ma850;
+  const baseName = "850均线";
+  const bands = {
+    x16: base.map(v => v === null ? null : v * 1.6),
+    x2:  base.map(v => v === null ? null : v * 2),
+    x3:  base.map(v => v === null ? null : v * 3),
+    x5:  base.map(v => v === null ? null : v * 5),
+  };
+
+  const pxPairs = dates.map((t, i) => [t, px[i]]);
+  const basePairs = dates.map((t, i) => [t, base[i]]);
+  const bandPairs = {
+    x16: dates.map((t, i) => [t, bands.x16[i]]),
+    x2:  dates.map((t, i) => [t, bands.x2[i]]),
+    x3:  dates.map((t, i) => [t, bands.x3[i]]),
+    x5:  dates.map((t, i) => [t, bands.x5[i]]),
+  };
+
+  // 初始纵轴范围需覆盖最高的 5 倍带
+  const initBounds = fullExtentBounds([px, base, bands.x16, bands.x2, bands.x3, bands.x5]);
+  const yAxisBase = baseYAxis(initBounds);
+
+  const legendNames = ["收盘价", baseName, "1.6倍", "2倍", "3倍", "5倍"];
+
+  return {
+    backgroundColor: "transparent",
+    animation: false,
+    grid: { left: 56, right: 56, top: 42, bottom: 62 },
+    legend: baseLegend(legendNames),
+    tooltip: {
+      trigger: "axis",
+      ...baseTooltipStyle(),
+      formatter: (params) => {
+        const date = params[0].axisValueLabel;
+        const get = (name) => { const p = params.find(x => x.seriesName === name); return p ? p.value[1] : null; };
+        const p = get("收盘价"), b = get(baseName);
+        let html = `<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8b95a8;letter-spacing:0.08em;margin-bottom:8px;">${date}</div>`;
+        const zone = multiplierZone(p, b);
+        const row = (label, val, color, devBase) => {
+          if (val == null) return "";
+          const dev = devBase ? `<span style="font-size:10px;color:#8b95a8;margin-left:8px;">${fmtSigned((val / devBase - 1) * 100, 2)}</span>` : "";
+          return `<div style="display:flex;justify-content:space-between;gap:18px;margin-bottom:4px;">
+            <span style="font-size:11px;color:#8b95a8;">${label}</span>
+            <span style="font-family:'Chakra Petch',sans-serif;font-size:13px;font-weight:600;color:${color};font-variant-numeric:tabular-nums;">${val.toFixed(2)}${dev}</span></div>`;
+        };
+        html += row("收盘价", p, C_MA_PRICE, b);
+        if (zone) html += `<span style="font-size:10px;color:${zone.cls === "neg" ? C_PRICE_BELOW : C_PRICE_ABOVE};">${zone.txt}</span>`;
+        html += row(baseName, b, C_MA850, p);
+        html += row("1.6倍", get("1.6倍"), C_X16, p);
+        html += row("2倍", get("2倍"), C_X2, p);
+        html += row("3倍", get("3倍"), C_X3, p);
+        html += row("5倍", get("5倍"), C_X5, p);
+        return html;
+      },
+    },
+    xAxis: baseXAxis(),
+    yAxis: [
+      { ...yAxisBase, position: "left" },
+      { ...yAxisBase, position: "right", splitLine: { show: false } },
+    ],
+    dataZoom: baseDataZoom(),
+    series: [
+      { name: "5倍", type: "line", data: bandPairs.x5, showSymbol: false, sampling: "lttb",
+        lineStyle: { color: C_X5, width: 1.2 }, itemStyle: { color: C_X5 }, z: 2 },
+      { name: "3倍", type: "line", data: bandPairs.x3, showSymbol: false, sampling: "lttb",
+        lineStyle: { color: C_X3, width: 1.2 }, itemStyle: { color: C_X3 }, z: 3 },
+      { name: "2倍", type: "line", data: bandPairs.x2, showSymbol: false, sampling: "lttb",
+        lineStyle: { color: C_X2, width: 1.3 }, itemStyle: { color: C_X2 }, z: 4 },
+      { name: "1.6倍", type: "line", data: bandPairs.x16, showSymbol: false, sampling: "lttb",
+        lineStyle: { color: C_X16, width: 1.4 }, itemStyle: { color: C_X16 }, z: 5 },
+      { name: baseName, type: "line", data: basePairs, showSymbol: false, sampling: "lttb",
+        lineStyle: { color: C_MA850, width: 2 }, itemStyle: { color: C_MA850 }, z: 6 },
+      { name: "收盘价", type: "line", data: pxPairs, showSymbol: false, sampling: "lttb",
+        lineStyle: { color: C_MA_PRICE, width: 2 }, itemStyle: { color: C_MA_PRICE }, z: 7 },
+    ],
+  };
+}
+
+function renderMa850() {
+  const d = enriched[state.activeIdx];
+  if (!ma850Chart) {
+    ma850Chart = echarts.init(document.getElementById("ma850Chart"), null, { renderer: "canvas" });
+    attachMouseupFix("ma850Chart");
+    attachPriceLock(ma850Chart);
+    attachZoomAdaptive(ma850Chart, () => {
+      const cur = enriched[state.activeIdx];
+      return [cur.px, cur.ma850, cur.ma850.map(v => v === null ? null : v * 5)];
+    });
+  }
+  ma850Chart.setOption(buildMa850Option(d), true);
+
+  // 读数条
+  const px = d.px;
+  const base = d.ma850;
+  const bI = [...base].map((v, i) => v === null ? -1 : i).reduce((a, b) => Math.max(a, b));
+  const p = px[px.length - 1], bv = base[bI];
+  const devHtml = (bv == null || p == null) ? "" : (() => {
+    const dev = (p / bv - 1) * 100;
+    const cls = dev >= 0 ? "pos" : "neg";
+    return `<span class="lab-stat"><span class="k">偏离 850均线</span><span class="v ${cls}">${fmtSigned(dev)}</span></span>`;
+  })();
+  document.getElementById("ma850Readout").innerHTML =
+    `<span class="lab-stat"><span class="k">现价</span><span class="v">${p.toFixed(2)}</span></span>
+     <span class="lab-sep">·</span>` +
+    devHtml +
 ``;
 }
 
@@ -478,7 +751,7 @@ function bindFreq() {
     btn.addEventListener("click", () => {
       state.freq = btn.dataset.freq;
       document.querySelectorAll("[data-freq]").forEach(b => b.classList.toggle("active", b === btn));
-      renderCost();
+      renderActive();
     });
   });
 }
@@ -494,10 +767,14 @@ function init() {
   if (hi >= 0) state.activeIdx = hi;
 
   renderChips();
+  bindIndTabs();
   bindFreq();
-  renderCost();
+  renderActive();
 
-  window.addEventListener("resize", () => { costChart && costChart.resize(); });
+  window.addEventListener("resize", () => {
+    costChart && costChart.resize();
+    ma850Chart && ma850Chart.resize();
+  });
 }
 
 if (document.readyState === "loading") {

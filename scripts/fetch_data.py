@@ -156,7 +156,9 @@ def process_index(info: dict) -> dict:
     days_cheaper = sum(1 for v in valid_vals if v < current_ind)
     days_more_expensive = total_days - days_cheaper - 1
 
-    update_time = datetime.now(CST).strftime("%Y-%m-%d %H:%M")
+    # 展示口径：数据截止交易日的 16:03（UTC+8）定时更新；
+    # 不用实际运行时刻——GitHub 定时任务常排队数小时，实际时刻会误导读者
+    update_time = dates_list[last_idx] + " 16:03"
 
     print(f"  {name:<6}  温度 {current_pct:5.1f}°  [{zone_key}]  价格 {current_price:.2f}  {change_pct:+.2f}%")
 
