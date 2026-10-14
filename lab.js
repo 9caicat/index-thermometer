@@ -470,7 +470,13 @@ const C_PRICE_BELOW = "#38bdf8";  // 亮蓝：价格在成本线下方
 const C_NEAR = "#f472b6";         // 玫红：近端成本线（定投线/50周线）
 const C_FAR = "#a78bfa";          // 紫：远端成本线（850日线/200周线）
 const C_MONTH = "#22c55e";        // 绿：210月均线（超长期成本）
-const MONTH_NAME = "210月均线 · 超长期成本";
+
+/** 数组最后一个非 null 值（取整），图例展示最新读数用 */
+function lastVal(arr) {
+  for (let i = arr.length - 1; i >= 0; i--) if (arr[i] !== null) return Math.round(arr[i]);
+  return null;
+}
+const lvTag = (v) => (v === null ? "" : " · " + v);
 
 function buildCostOption(d) {
   const weekly = state.freq === "W";
@@ -479,8 +485,9 @@ function buildCostOption(d) {
   const near = weekly ? d.ma50w : d.hm200;     // 近端成本线
   const far = weekly ? d.ma200w : d.ma850;     // 远端成本线
   const month = alignMonthlyToDates(dates, d.mdates, d.ma210m);  // 210月均线（阶梯对齐）
-  const nearName = weekly ? "50周线 · 一年成本" : "定投成本线 · 200日调和";
-  const farName = weekly ? "200周线 · 四年成本" : "850日均线 · 3.5年成本";
+  const nearName = (weekly ? "50周线" : "定投成本线") + lvTag(lastVal(near));
+  const farName = (weekly ? "200周线" : "850日均线") + lvTag(lastVal(far));
+  const monthName = "210月均线" + lvTag(lastVal(month));
 
   // 价格线三段数据：[日期, 价格, 状态] 状态 1=线上 0=线下 0.5=无基准
   const pxTriples = dates.map((t, i) => {
@@ -500,7 +507,7 @@ function buildCostOption(d) {
     backgroundColor: "transparent",
     animation: false,
     grid: { left: 56, right: 56, top: 42, bottom: 62 },
-    legend: baseLegend(["收盘价", nearName, farName, MONTH_NAME]),
+    legend: baseLegend(["收盘价", nearName, farName, monthName]),
     visualMap: {
       show: false,
       type: "piecewise",
@@ -517,23 +524,23 @@ function buildCostOption(d) {
       formatter: (params) => {
         const date = params[0].axisValueLabel;
         const get = (name) => { const p = params.find(x => x.seriesName === name); return p ? p.value[1] : null; };
-        const p = get("收盘价"), n = get(nearName), f = get(farName), m = get(MONTH_NAME);
+        const p = get("收盘价"), n = get(nearName), f = get(farName), m = get(monthName);
         let html = `<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8b95a8;letter-spacing:0.08em;margin-bottom:8px;">${date}</div>`;
         const stateTxt = (p == null || n == null) ? "" : (p >= n
-          ? `<span style="font-size:10px;color:${C_PRICE_ABOVE};">线上 · 定投者浮盈 ${fmtSigned((p / n - 1) * 100, 2)}</span>`
-          : `<span style="font-size:10px;color:${C_PRICE_BELOW};">线下 · 定投者浮亏 ${fmtSigned((p / n - 1) * 100, 2)}</span>`);
-        const row = (label, val, color, devBase) => {
+          ? `<span style="font-size:10px;color:${C_PRICE_ABOVE};">线上 · 定投者浮盈</span>`
+          : `<span style="font-size:10px;color:${C_PRICE_BELOW};">线下 · 定投者浮亏</span>`);
+        const row = (label, val, color) => {
           if (val == null) return "";
-          const dev = devBase ? `<span style="font-size:10px;color:#8b95a8;margin-left:8px;">${fmtSigned((val / devBase - 1) * 100, 2)}</span>` : "";
+          const short = label.split(" · ")[0];   // 图例名含最新值，tooltip 里用短名
           return `<div style="display:flex;justify-content:space-between;gap:18px;margin-bottom:4px;">
-            <span style="font-size:11px;color:#8b95a8;">${label}</span>
-            <span style="font-family:'Chakra Petch',sans-serif;font-size:13px;font-weight:600;color:${color};font-variant-numeric:tabular-nums;">${val.toFixed(2)}${dev}</span></div>`;
+            <span style="font-size:11px;color:#8b95a8;">${short}</span>
+            <span style="font-family:'Chakra Petch',sans-serif;font-size:13px;font-weight:600;color:${color};font-variant-numeric:tabular-nums;">${val.toFixed(2)}</span></div>`;
         };
-        html += row("收盘价", p, p != null && n != null && p >= n ? C_PRICE_ABOVE : C_PRICE_BELOW);
+        html += row("收盘价", p, C_PRICE_ABOVE);   // 数值恒定黄色，与收盘价图例一致
         html += stateTxt;
-        html += row(nearName, n, C_NEAR, p);
-        html += row(farName, f, C_FAR, p);
-        html += row(MONTH_NAME, m, C_MONTH, p);
+        html += row(nearName, n, C_NEAR);
+        html += row(farName, f, C_FAR);
+        html += row(monthName, m, C_MONTH);
         return html;
       },
     },
@@ -544,7 +551,7 @@ function buildCostOption(d) {
     ],
     dataZoom: baseDataZoom(),
     series: [
-      { name: MONTH_NAME, type: "line", data: monthPairs, showSymbol: false, sampling: "lttb",
+      { name: monthName, type: "line", data: monthPairs, showSymbol: false, sampling: "lttb",
         lineStyle: { color: C_MONTH, width: 1.4 },
         itemStyle: { color: C_MONTH }, z: 2 },
       { name: farName, type: "line", data: farPairs, showSymbol: false, sampling: "lttb",
@@ -629,12 +636,18 @@ function buildMa850Option(d) {
   const dates = d.dates;
   const px = d.px;
   const base = d.ma850;
-  const baseName = "850均线";
+  const baseName = "850均线" + lvTag(lastVal(base));
   const bands = {
     x16: base.map(v => v === null ? null : v * 1.6),
     x2:  base.map(v => v === null ? null : v * 2),
     x3:  base.map(v => v === null ? null : v * 3),
     x5:  base.map(v => v === null ? null : v * 5),
+  };
+  const bandNames = {
+    x16: "1.6倍" + lvTag(lastVal(bands.x16)),
+    x2:  "2倍" + lvTag(lastVal(bands.x2)),
+    x3:  "3倍" + lvTag(lastVal(bands.x3)),
+    x5:  "5倍" + lvTag(lastVal(bands.x5)),
   };
 
   const pxPairs = dates.map((t, i) => [t, px[i]]);
@@ -650,7 +663,7 @@ function buildMa850Option(d) {
   const initBounds = fullExtentBounds([px, base, bands.x16, bands.x2, bands.x3, bands.x5]);
   const yAxisBase = baseYAxis(initBounds);
 
-  const legendNames = ["收盘价", baseName, "1.6倍", "2倍", "3倍", "5倍"];
+  const legendNames = ["收盘价", baseName, bandNames.x16, bandNames.x2, bandNames.x3, bandNames.x5];
 
   return {
     backgroundColor: "transparent",
@@ -666,20 +679,20 @@ function buildMa850Option(d) {
         const p = get("收盘价"), b = get(baseName);
         let html = `<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8b95a8;letter-spacing:0.08em;margin-bottom:8px;">${date}</div>`;
         const zone = multiplierZone(p, b);
-        const row = (label, val, color, devBase) => {
+        const row = (label, val, color) => {
           if (val == null) return "";
-          const dev = devBase ? `<span style="font-size:10px;color:#8b95a8;margin-left:8px;">${fmtSigned((val / devBase - 1) * 100, 2)}</span>` : "";
+          const short = label.split(" · ")[0];   // 图例名含最新值，tooltip 里用短名
           return `<div style="display:flex;justify-content:space-between;gap:18px;margin-bottom:4px;">
-            <span style="font-size:11px;color:#8b95a8;">${label}</span>
-            <span style="font-family:'Chakra Petch',sans-serif;font-size:13px;font-weight:600;color:${color};font-variant-numeric:tabular-nums;">${val.toFixed(2)}${dev}</span></div>`;
+            <span style="font-size:11px;color:#8b95a8;">${short}</span>
+            <span style="font-family:'Chakra Petch',sans-serif;font-size:13px;font-weight:600;color:${color};font-variant-numeric:tabular-nums;">${val.toFixed(2)}</span></div>`;
         };
-        html += row("收盘价", p, C_MA_PRICE, b);
+        html += row("收盘价", p, C_MA_PRICE);   // 数值恒定黄色，与收盘价图例一致
         if (zone) html += `<span style="font-size:10px;color:${zone.cls === "neg" ? C_PRICE_BELOW : C_PRICE_ABOVE};">${zone.txt}</span>`;
-        html += row(baseName, b, C_MA850, p);
-        html += row("1.6倍", get("1.6倍"), C_X16, p);
-        html += row("2倍", get("2倍"), C_X2, p);
-        html += row("3倍", get("3倍"), C_X3, p);
-        html += row("5倍", get("5倍"), C_X5, p);
+        html += row(baseName, b, C_MA850);
+        html += row(bandNames.x16, get(bandNames.x16), C_X16);
+        html += row(bandNames.x2, get(bandNames.x2), C_X2);
+        html += row(bandNames.x3, get(bandNames.x3), C_X3);
+        html += row(bandNames.x5, get(bandNames.x5), C_X5);
         return html;
       },
     },
@@ -690,13 +703,13 @@ function buildMa850Option(d) {
     ],
     dataZoom: baseDataZoom(),
     series: [
-      { name: "5倍", type: "line", data: bandPairs.x5, showSymbol: false, sampling: "lttb",
+      { name: bandNames.x5, type: "line", data: bandPairs.x5, showSymbol: false, sampling: "lttb",
         lineStyle: { color: C_X5, width: 1.2 }, itemStyle: { color: C_X5 }, z: 2 },
-      { name: "3倍", type: "line", data: bandPairs.x3, showSymbol: false, sampling: "lttb",
+      { name: bandNames.x3, type: "line", data: bandPairs.x3, showSymbol: false, sampling: "lttb",
         lineStyle: { color: C_X3, width: 1.2 }, itemStyle: { color: C_X3 }, z: 3 },
-      { name: "2倍", type: "line", data: bandPairs.x2, showSymbol: false, sampling: "lttb",
+      { name: bandNames.x2, type: "line", data: bandPairs.x2, showSymbol: false, sampling: "lttb",
         lineStyle: { color: C_X2, width: 1.3 }, itemStyle: { color: C_X2 }, z: 4 },
-      { name: "1.6倍", type: "line", data: bandPairs.x16, showSymbol: false, sampling: "lttb",
+      { name: bandNames.x16, type: "line", data: bandPairs.x16, showSymbol: false, sampling: "lttb",
         lineStyle: { color: C_X16, width: 1.4 }, itemStyle: { color: C_X16 }, z: 5 },
       { name: baseName, type: "line", data: basePairs, showSymbol: false, sampling: "lttb",
         lineStyle: { color: C_MA850, width: 2 }, itemStyle: { color: C_MA850 }, z: 6 },
