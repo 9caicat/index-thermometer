@@ -142,89 +142,67 @@ function buildSparkline(d, zoneColor) {
 }
 
 /* ──────────────  Thermometer SVG  ─────────────────────────────── */
-function buildThermometer(temp, zoneColor) {
-  // viewBox 100 × 330
-  const tubeX = 30, tubeW = 24;
-  const tubeTop = 18, tubeBottom = 258;
-  const tubeRange = tubeBottom - tubeTop;  // 240
-  const bulbCx = 42, bulbCy = 288, bulbR = 26;
-
-  // map temp 0–100 to y: 0° at tubeBottom, 100° at tubeTop
-  const tBounded = Math.max(0, Math.min(100, temp));
-  const fillY = tubeBottom - (tBounded / 100) * tubeRange;
-  const colHeight = (bulbCy - bulbR + 8) - fillY; // extends into bulb area for seam
-
-  // tick marks shown on the right
-  const ticks = [
-    { val: 5,  label: "5°"  },
-    { val: 25, label: "25°" },
-    { val: 50, label: "50°" },
-    { val: 75, label: "75°" },
-    { val: 95, label: "95°" },
+/* ──────────────  Semicircular gauge (恐惧贪婪仪表盘风格) ──────── */
+function buildGauge(temp, zoneKey) {
+  const CX = 170, CY = 178, R = 128, SW = 15;
+  const pt = (v, r = R) => {
+    const a = ((180 - v * 1.8) * Math.PI) / 180;
+    return [CX + r * Math.cos(a), CY - r * Math.sin(a)];
+  };
+  const arc = (v1, v2) => {
+    const [x1, y1] = pt(v1), [x2, y2] = pt(v2);
+    return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 0 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+  };
+  const SEG = [
+    { key: "diamond", from: 0,  to: 5  },
+    { key: "dca",     from: 5,  to: 25 },
+    { key: "fair",    from: 25, to: 75 },
+    { key: "warm",    from: 75, to: 90 },
+    { key: "hot",     from: 90, to: 95 },
+    { key: "extreme", from: 95, to: 100 },
   ];
-  const tickSVG = ticks.map((t) => {
-    const y = tubeBottom - (t.val / 100) * tubeRange;
-    return `
-      <line x1="${tubeX + tubeW + 2}" y1="${y}" x2="${tubeX + tubeW + 8}" y2="${y}" stroke="rgba(255,255,255,0.32)" stroke-width="0.8" />
-      <text x="${tubeX + tubeW + 12}" y="${y + 3}" font-family="JetBrains Mono, monospace" font-size="8" font-weight="500" fill="rgba(139,149,168,0.92)" letter-spacing="0.04em">${t.label}</text>
-    `;
+  const GAP = 0.45;                     // 段间缝隙（温度单位）
+  const tB = Math.max(0, Math.min(100, temp));
+
+  // 全弧底色轨道（增强轮廓结构感）
+  const track = `<path d="${arc(0, 100)}" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="${SW}" />`;
+
+  // 六段温区弧：当前温区全亮加粗，其余保留 55% 不透明度（无发光滤镜）
+  const arcs = SEG.map(s => {
+    const on = s.key === zoneKey;
+    const f = s.from === 0 ? s.from : s.from + GAP;
+    const t = s.to === 100 ? s.to : s.to - GAP;
+    const d = arc(f, t);
+    return `<path d="${d}" fill="none" stroke="${ZONE[s.key].color}" stroke-width="${on ? SW + 3 : SW}" opacity="${on ? 1 : 0.55}" stroke-linecap="butt" />`;
   }).join("");
 
-  // current value marker (line)
-  const markerY = fillY;
+  // 温区名称沿弧排布（切线方向旋转），颜色与弧段一致
+  const labels = SEG.map(s => {
+    const mid = (s.from + s.to) / 2;
+    const [x, y] = pt(mid, R + 22);
+    const rot = mid * 1.8 - 90;
+    const on = s.key === zoneKey;
+    return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle"
+      transform="rotate(${rot.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"
+      font-family="Noto Sans SC, sans-serif" font-size="11" font-weight="${on ? 700 : 500}"
+      fill="${ZONE[s.key].color}" opacity="${on ? 1 : 0.65}">${ZONE_LABEL[s.key]}</text>`;
+  }).join("");
 
-  return `
-    <defs>
-      <linearGradient id="mercuryGrad" x1="0" y1="1" x2="0" y2="0">
-        <stop offset="0%"   stop-color="#60a5fa" />
-        <stop offset="22%"  stop-color="#2dd4bf" />
-        <stop offset="50%"  stop-color="#94a3b8" />
-        <stop offset="82%"  stop-color="#fbbf24" />
-        <stop offset="92%"  stop-color="#fb923c" />
-        <stop offset="100%" stop-color="#ef4444" />
-      </linearGradient>
-      <filter id="bulbGlow" x="-80%" y="-80%" width="260%" height="260%">
-        <feGaussianBlur stdDeviation="6" />
-      </filter>
-      <radialGradient id="bulbInner" cx="35%" cy="35%" r="65%">
-        <stop offset="0%"  stop-color="${zoneColor}" stop-opacity="1" />
-        <stop offset="75%" stop-color="${zoneColor}" stop-opacity="0.9" />
-        <stop offset="100%" stop-color="${zoneColor}" stop-opacity="0.6" />
-      </radialGradient>
-    </defs>
+  // 刻度：每 5° 一格
+  let ticks = "";
+  for (let v = 0; v <= 100; v += 5) {
+    const [x1, y1] = pt(v, R - SW / 2 - 3);
+    const [x2, y2] = pt(v, R - SW / 2 - 8);
+    ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="rgba(255,255,255,0.22)" stroke-width="1" />`;
+  }
 
-    <!-- Bulb outer glow -->
-    <circle cx="${bulbCx}" cy="${bulbCy}" r="${bulbR + 2}" fill="${zoneColor}" opacity="0.35" filter="url(#bulbGlow)" />
+  // 指针 + 轴心
+  const [nx, ny] = pt(tB, R - SW / 2 - 16);
+  const needle = `
+    <line x1="${CX}" y1="${CY}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="#f5e6c4" stroke-width="3" stroke-linecap="round" />
+    <circle cx="${CX}" cy="${CY}" r="5" fill="#f5e6c4" />`;
 
-    <!-- Glass tube outline -->
-    <rect x="${tubeX}" y="${tubeTop}" width="${tubeW}" height="${tubeRange}" rx="${tubeW / 2}" ry="${tubeW / 2}"
-          fill="rgba(255,255,255,0.025)" stroke="rgba(255,255,255,0.22)" stroke-width="1" />
-
-    <!-- Glass bulb outline -->
-    <circle cx="${bulbCx}" cy="${bulbCy}" r="${bulbR}" fill="rgba(255,255,255,0.025)" stroke="rgba(255,255,255,0.22)" stroke-width="1" />
-
-    <!-- Mercury column (rounded) -->
-    <rect x="${tubeX + 3}" y="${fillY}" width="${tubeW - 6}" height="${colHeight}" rx="${(tubeW - 6) / 2}" ry="${(tubeW - 6) / 2}"
-          fill="url(#mercuryGrad)" />
-
-    <!-- Mercury bulb (always filled in zone color) -->
-    <circle cx="${bulbCx}" cy="${bulbCy}" r="${bulbR - 4}" fill="url(#bulbInner)" />
-
-    <!-- Glass reflection on tube -->
-    <rect x="${tubeX + 4}" y="${tubeTop + 6}" width="2.5" height="${tubeRange - 12}" rx="1.2" fill="rgba(255,255,255,0.18)" />
-
-    <!-- Glass reflection on bulb -->
-    <ellipse cx="${bulbCx - 7}" cy="${bulbCy - 8}" rx="5" ry="7" fill="rgba(255,255,255,0.32)" />
-
-    <!-- Tick marks + labels -->
-    <g>${tickSVG}</g>
-
-    <!-- Current temp marker -->
-    <g style="transition: transform 0.6s ease;">
-      <line x1="${tubeX - 8}" y1="${markerY}" x2="${tubeX + 2}" y2="${markerY}" stroke="#fff" stroke-width="1.2" stroke-linecap="round" />
-      <circle cx="${tubeX - 8}" cy="${markerY}" r="2" fill="#fff" />
-    </g>
-  `;
+  return `${track}${arcs}${ticks}${labels}${needle}`;
 }
 
 /* ──────────────  Render dashboard cards  ─────────────────────── */
@@ -310,14 +288,19 @@ function renderAnalysis(d) {
   zoneEl.textContent = c.zone.label;
   zoneEl.dataset.zone = c.zone.key;
 
-  document.getElementById("a-hint").textContent = c.zone.hint;
-
   document.getElementById("a-total").textContent = c.totalDays;
-  document.getElementById("a-cheaper").textContent = fmtInt(c.daysCheaper);
-  document.getElementById("a-expensive").textContent = fmtInt(c.daysMoreExpensive);
 
-  // Thermometer
-  document.getElementById("a-thermo").innerHTML = buildThermometer(c.percentile, z.color);
+  // 比当前更冷/更热的时间占比（%）。分母 = 更冷天数 + 更热天数（= 总天数 − 当日自身），
+  // 与既有天数口径一致；极端情况（无历史样本 → 0；历史最低 → 0% 更冷；历史新高 → 0% 更热）均可安全展示
+  const coldDays = c.daysCheaper, hotDays = c.daysMoreExpensive;
+  const coldHotSum = coldDays + hotDays;
+  const coldPct = coldHotSum > 0 ? (coldDays / coldHotSum) * 100 : null;
+  const hotPct = coldHotSum > 0 ? (hotDays / coldHotSum) * 100 : null;
+  document.getElementById("a-cheaper").textContent = coldPct === null ? "--" : coldPct.toFixed(1) + "%";
+  document.getElementById("a-expensive").textContent = hotPct === null ? "--" : hotPct.toFixed(1) + "%";
+
+  // Semicircular gauge
+  document.getElementById("a-gauge").innerHTML = buildGauge(c.percentile, c.zone.key);
 
   renderBreakdown(d);
 }
@@ -472,9 +455,9 @@ function buildChartOption(d) {
           html += `
             <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding-top:8px;margin-top:4px;border-top:1px dashed rgba(255,255,255,0.1);">
               <span style="font-family:'Noto Sans SC',sans-serif;font-size:11px;color:#8b95a8;display:inline-flex;align-items:center;gap:7px;">
-                <span style="display:inline-block;width:10px;height:2px;background:#f5e6c4;border-radius:1px;"></span>收盘价
+                <span style="display:inline-block;width:10px;height:2px;background:#f8fafc;border-radius:1px;"></span>收盘价
               </span>
-              <span style="font-family:'Chakra Petch',sans-serif;font-size:15px;font-weight:600;color:#f5e6c4;font-variant-numeric:tabular-nums;">${price.toFixed(2)}</span>
+              <span style="font-family:'Chakra Petch',sans-serif;font-size:15px;font-weight:600;color:#f8fafc;font-variant-numeric:tabular-nums;">${price.toFixed(2)}</span>
             </div>`;
         }
         return html;
@@ -600,7 +583,8 @@ function buildChartOption(d) {
         smooth: 0.15,
         showSymbol: false,
         sampling: "lttb",
-        lineStyle: { color: "rgba(245, 230, 196, 0.55)", width: 1.2 },
+        lineStyle: { color: "#f8fafc", width: 1.4 },   // 高对比白，避开温区配色
+        itemStyle: { color: "#f8fafc" },               // 图例色块与线条一致
         z: 2,
       },
     ],

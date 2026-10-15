@@ -115,19 +115,17 @@
 
         <!-- THE READOUT: thermometer + temperature value + zone breakdown -->
         <div class="analysis-core">
-          <!-- Left: thermometer + temperature value -->
+          <!-- Left: semicircular gauge + center readout -->
           <div class="core-readout">
-            <div class="thermo-wrap">
-              <svg class="thermometer-svg" id="a-thermo" viewBox="0 0 100 330" aria-hidden="true"></svg>
-            </div>
-
-            <div class="readout-text">
+            <div class="gauge-wrap">
               <span class="readout-label">温度值 <span class="block-label-en">/ TEMPERATURE</span></span>
-              <div class="temp-value">
-                <span class="temp-num" id="a-temp">56</span><span class="temp-deg">°</span>
+              <svg class="gauge-svg" id="a-gauge" viewBox="0 0 340 198" aria-hidden="true"></svg>
+              <div class="gauge-center">
+                <div class="temp-value">
+                  <span class="temp-num" id="a-temp">56</span><span class="temp-deg">°</span>
+                </div>
+                <div class="zone-big" id="a-zone" data-zone="fair">常 温</div>
               </div>
-              <div class="zone-big" id="a-zone" data-zone="fair">常 温</div>
-              <p class="zone-hint" id="a-hint">温度居中 · 约一半的历史时段处于此区间</p>
             </div>
           </div>
 
@@ -139,11 +137,11 @@
             </div>
             <div class="breakdown-summary">
               <span class="summary-item">
-                <span class="summary-num" id="a-cheaper">198</span><span class="summary-desc">天 比当前更冷</span>
+                <span class="summary-num" id="a-cheaper">--</span><span class="summary-desc">的时间比当前更冷</span>
               </span>
               <span class="summary-sep" aria-hidden="true">·</span>
               <span class="summary-item">
-                <span class="summary-num" id="a-expensive">152</span><span class="summary-desc">天 比当前更热</span>
+                <span class="summary-num" id="a-expensive">--</span><span class="summary-desc">的时间比当前更热</span>
               </span>
             </div>
           </div>

@@ -503,6 +503,13 @@ function buildCostOption(d) {
   const initBounds = fullExtentBounds([px, near, far, month]);
   const yAxisBase = baseYAxis(initBounds);
 
+  // 日期 → 下标映射：tooltip 直接从数组取值（LTTB 抽样下按 series 名取参不可靠）
+  const idxOf = new Map(dates.map((t, i) => [t, i]));
+  const tsToKey = (ts) => {
+    const dt = new Date(ts);   // ECharts 按本地时区解析日期串，取本地年月日对齐
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+  };
+
   return {
     backgroundColor: "transparent",
     animation: false,
@@ -523,18 +530,19 @@ function buildCostOption(d) {
       ...baseTooltipStyle(),
       formatter: (params) => {
         const date = params[0].axisValueLabel;
-        const get = (name) => { const p = params.find(x => x.seriesName === name); return p ? p.value[1] : null; };
-        const p = get("收盘价"), n = get(nearName), f = get(farName), m = get(monthName);
+        const i = idxOf.get(tsToKey(params[0].axisValue));
+        const val = (arr) => (i === undefined ? null : arr[i]);
+        const p = val(px), n = val(near), f = val(far), m = val(month);
         let html = `<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8b95a8;letter-spacing:0.08em;margin-bottom:8px;">${date}</div>`;
         const stateTxt = (p == null || n == null) ? "" : (p >= n
           ? `<span style="font-size:10px;color:${C_PRICE_ABOVE};">线上 · 定投者浮盈</span>`
           : `<span style="font-size:10px;color:${C_PRICE_BELOW};">线下 · 定投者浮亏</span>`);
-        const row = (label, val, color) => {
-          if (val == null) return "";
+        const row = (label, v, color) => {
           const short = label.split(" · ")[0];   // 图例名含最新值，tooltip 里用短名
+          const vTxt = (v === null || v === undefined) ? "--" : v.toFixed(2);   // 均线 warmup 期内统一显示 --
           return `<div style="display:flex;justify-content:space-between;gap:18px;margin-bottom:4px;">
             <span style="font-size:11px;color:#8b95a8;">${short}</span>
-            <span style="font-family:'Chakra Petch',sans-serif;font-size:13px;font-weight:600;color:${color};font-variant-numeric:tabular-nums;">${val.toFixed(2)}</span></div>`;
+            <span style="font-family:'Chakra Petch',sans-serif;font-size:13px;font-weight:600;color:${color};font-variant-numeric:tabular-nums;">${vTxt}</span></div>`;
         };
         html += row("收盘价", p, C_PRICE_ABOVE);   // 数值恒定黄色，与收盘价图例一致
         html += stateTxt;
@@ -621,17 +629,6 @@ const C_X3 = "#f97316";           // 橙：3 倍（Pine color.orange）
 const C_X5 = "#db42a1";           // 品红：5 倍（Pine rgb(219,66,161)）
 const C_MA_PRICE = "#fbbf24";     // 琥珀：收盘价
 
-/** 当前价位所处乘数带 */
-function multiplierZone(p, b) {
-  if (p == null || b == null) return null;
-  if (p < b)        return { txt: "均线下方 · 低估区", cls: "neg" };
-  if (p < b * 1.6)  return { txt: "均线 ~ 1.6倍 · 合理区", cls: "pos" };
-  if (p < b * 2)    return { txt: "1.6 ~ 2倍 · 偏热", cls: "pos" };
-  if (p < b * 3)    return { txt: "2 ~ 3倍 · 高热", cls: "pos" };
-  if (p < b * 5)    return { txt: "3 ~ 5倍 · 泡沫区", cls: "pos" };
-  return { txt: "高于 5倍 · 极热", cls: "pos" };
-}
-
 function buildMa850Option(d) {
   const dates = d.dates;
   const px = d.px;
@@ -665,6 +662,13 @@ function buildMa850Option(d) {
 
   const legendNames = ["收盘价", baseName, bandNames.x16, bandNames.x2, bandNames.x3, bandNames.x5];
 
+  // 日期 → 下标映射：tooltip 直接从数组取值（LTTB 抽样下按 series 名取参不可靠）
+  const idxOf = new Map(dates.map((t, i) => [t, i]));
+  const tsToKey = (ts) => {
+    const dt = new Date(ts);   // ECharts 按本地时区解析日期串，取本地年月日对齐
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+  };
+
   return {
     backgroundColor: "transparent",
     animation: false,
@@ -675,24 +679,23 @@ function buildMa850Option(d) {
       ...baseTooltipStyle(),
       formatter: (params) => {
         const date = params[0].axisValueLabel;
-        const get = (name) => { const p = params.find(x => x.seriesName === name); return p ? p.value[1] : null; };
-        const p = get("收盘价"), b = get(baseName);
+        const i = idxOf.get(tsToKey(params[0].axisValue));
+        const val = (arr) => (i === undefined ? null : arr[i]);
+        const p = val(px), b = val(base);
         let html = `<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8b95a8;letter-spacing:0.08em;margin-bottom:8px;">${date}</div>`;
-        const zone = multiplierZone(p, b);
-        const row = (label, val, color) => {
-          if (val == null) return "";
+        const row = (label, v, color) => {
           const short = label.split(" · ")[0];   // 图例名含最新值，tooltip 里用短名
+          const vTxt = (v === null || v === undefined) ? "--" : v.toFixed(2);   // 均线 warmup 期内统一显示 --
           return `<div style="display:flex;justify-content:space-between;gap:18px;margin-bottom:4px;">
             <span style="font-size:11px;color:#8b95a8;">${short}</span>
-            <span style="font-family:'Chakra Petch',sans-serif;font-size:13px;font-weight:600;color:${color};font-variant-numeric:tabular-nums;">${val.toFixed(2)}</span></div>`;
+            <span style="font-family:'Chakra Petch',sans-serif;font-size:13px;font-weight:600;color:${color};font-variant-numeric:tabular-nums;">${vTxt}</span></div>`;
         };
         html += row("收盘价", p, C_MA_PRICE);   // 数值恒定黄色，与收盘价图例一致
-        if (zone) html += `<span style="font-size:10px;color:${zone.cls === "neg" ? C_PRICE_BELOW : C_PRICE_ABOVE};">${zone.txt}</span>`;
         html += row(baseName, b, C_MA850);
-        html += row(bandNames.x16, get(bandNames.x16), C_X16);
-        html += row(bandNames.x2, get(bandNames.x2), C_X2);
-        html += row(bandNames.x3, get(bandNames.x3), C_X3);
-        html += row(bandNames.x5, get(bandNames.x5), C_X5);
+        html += row(bandNames.x16, val(bands.x16), C_X16);
+        html += row(bandNames.x2, val(bands.x2), C_X2);
+        html += row(bandNames.x3, val(bands.x3), C_X3);
+        html += row(bandNames.x5, val(bands.x5), C_X5);
         return html;
       },
     },

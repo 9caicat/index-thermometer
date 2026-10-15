@@ -566,37 +566,45 @@ header, main, footer { position: relative; z-index: 1; }
 
 .core-readout {
   display: flex;
-  flex-direction: row;
-  gap: 18px;
-  align-items: stretch;
+  flex-direction: column;
+  align-items: center;
 }
 
-.thermo-wrap {
-  flex-shrink: 0;
-  width: 78px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
+.gauge-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
 }
-.thermometer-svg {
+.gauge-wrap .readout-label { margin-bottom: 6px; }
+.gauge-svg {
   width: 100%;
   height: auto;
-  max-height: 380px;
   display: block;
 }
-
-.readout-text {
-  flex: 1;
-  min-width: 0;
+.gauge-center {
+  position: absolute;
+  left: 50%;
+  bottom: 2%;
+  transform: translateX(-50%);
+  text-align: center;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
 }
+.gauge-center .temp-value { justify-content: center; }
+.gauge-center .temp-num { font-size: 48px; }
+.gauge-center .temp-deg { font-size: 26px; }
+.gauge-center .zone-big { font-size: 19px; }
+.gauge-center .zone-hint { font-size: 12px; margin-top: 2px; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .readout-label {
   display: block;
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-size: 12.5px;
+  letter-spacing: 0.16em;
   color: #ffffff;
   text-transform: uppercase;
   margin-bottom: 12px;
@@ -676,21 +684,20 @@ header, main, footer { position: relative; z-index: 1; }
   background: var(--zone-color);
   border-radius: 1px;
   height: 14px;
-  opacity: 0.55;
+  opacity: 1;
   transition: opacity 0.25s var(--ease);
 }
 
 .breakdown-row.is-active {
   background: var(--zone-tint);
 }
-.breakdown-row.is-active .row-bar { opacity: 1; }
-.breakdown-row.is-active .row-name { color: var(--zone-color); font-weight: 700; }
+.breakdown-row.is-active .row-name { font-weight: 700; }
 
 .row-name {
   font-family: var(--font-zh);
   font-size: 13.5px;
   font-weight: 600;
-  color: var(--text);
+  color: var(--zone-color);
   letter-spacing: 0.06em;
 }
 
@@ -705,7 +712,7 @@ header, main, footer { position: relative; z-index: 1; }
 .row-pct {
   font-family: var(--font-mono);
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--text-2);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -1082,8 +1089,12 @@ header, main, footer { position: relative; z-index: 1; }
   .price-value { font-size: 28px; }
   .price-change { font-size: 13px; }
 
-  .core-readout { gap: 32px; }
-  .thermo-wrap { width: 96px; }
+  .core-readout { gap: 20px; }
+
+  .gauge-center .temp-num { font-size: 56px; }
+  .gauge-center .temp-deg { font-size: 30px; }
+  .gauge-center .zone-big { font-size: 22px; }
+  .gauge-center .zone-hint { font-size: 13px; }
 
   .temp-num    { font-size: 120px; }
   .temp-deg    { font-size: 64px; }
@@ -1120,10 +1131,13 @@ header, main, footer { position: relative; z-index: 1; }
     align-items: stretch;
     gap: 44px;
   }
-  .core-readout   { flex: 1.05; gap: 32px; }
+  .core-readout   { flex: 1.05; }
   .zone-breakdown { flex: 1; }
 
-  .thermo-wrap   { width: 100px; }
+  .gauge-wrap     { max-width: 470px; }
+  .gauge-center .temp-num { font-size: 64px; }
+  .gauge-center .temp-deg { font-size: 34px; }
+  .gauge-center .zone-big { font-size: 24px; }
   .temp-num      { font-size: 132px; }
   .temp-deg      { font-size: 72px; }
   .zone-big      { font-size: 34px; }
