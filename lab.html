@@ -136,9 +136,9 @@
     }
 
     /* ── 图表高度（桌面/移动） ────────────────────────────── */
-    #costChart, #ma850Chart { height: 560px; }
+    #costChart, #ma850Chart, #dipChart { height: 560px; }
     @media (max-width: 760px) {
-      #costChart, #ma850Chart { height: 400px; }
+      #costChart, #ma850Chart, #dipChart { height: 400px; }
     }
 
     /* ── 移动端适配 ─────────────────────────────────────── */
@@ -212,6 +212,9 @@
         <button class="lab-tab" data-ind="ma850" role="tab" aria-selected="false">
           <span class="lab-tab-num">L2</span><span class="lab-tab-name">850黄金乘数</span>
         </button>
+        <button class="lab-tab" data-ind="dip" role="tab" aria-selected="false">
+          <span class="lab-tab-num">L3</span><span class="lab-tab-name">沪深300超跌基准</span>
+        </button>
       </nav>
 
       <div class="lab-main">
@@ -282,6 +285,39 @@
             <div class="lab-theory">
               <p><strong>宏观背景。</strong>850 日（约 3.5 年）跨越一轮完整的信贷与产能周期，其均线可视作指数的长期价值中枢；价格相对中枢的倍数偏离由流动性与风险偏好驱动，具有显著的均值回归特征。乘数 1.6 / 2 / 3 / 5 取自黄金分割与历史极值统计：1.6 近似黄金比例 φ，2 与 3 对应历史上阶段性顶部常见的偏离区间，5 则标记极端泡沫。</p>
               <p><strong>使用方法。</strong>价格运行于均线下方为低估区；均线至 1.6 倍为合理区；1.6 至 2 倍偏热、2 至 3 倍高热，应逐步降低追涨意愿；触及 3 倍以上进入泡沫区，历史上多对应大级别顶部区域，宜分批兑现而非加仓；跌回均线附近则是长期资金的分批布局区。乘数带随均线每日平移，斜率向上时顶部阈值同步抬升，斜率走平下弯时警惕带内假突破。</p>
+            </div>
+          </details>
+        </section>
+
+        <!-- ─────────── L3 · 沪深300超跌基准 ─────────── -->
+        <section class="block lab-panel" id="panel-dip" aria-labelledby="dip-label" hidden>
+          <div class="block-head">
+            <span class="block-num">L3</span>
+            <h2 class="block-label" id="dip-label">沪深300超跌基准 <span class="block-label-en">/ OVERSOLD BENCHMARK</span></h2>
+          </div>
+
+          <div class="lab-intro">沪深300超跌基准是什么？把沪深300全收益指数与二级债基等效基准线放到同一起点（2004 年末 = 0%）对比累计涨幅：二级债基代表稳健资产的长期复利轨迹，当沪深300全收益的累计轨迹跌破这条基准线时，历史上多对应市场的底部区域，图中红点标记每次跌破的起点。注意：所有指标仅供学习交流使用，不构成任何投资建议和依据！</div>
+
+          <div class="lab-readout" id="dipReadout"></div>
+
+          <div class="chart-card">
+            <div class="chart-corners" aria-hidden="true">
+              <span class="ct-corner tl"></span><span class="ct-corner tr"></span>
+              <span class="ct-corner bl"></span><span class="ct-corner br"></span>
+            </div>
+            <div class="chart-container" id="dipChart"></div>
+          </div>
+
+          <details class="risk-warning" open>
+            <summary>
+              <span class="warning-icon" aria-hidden="true">i</span>
+              <span class="warning-text">沪深300超跌基准 · 指标说明 <span class="block-label-en">/ NOTES</span></span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </summary>
+            <div class="lab-theory">
+              <p><strong>宏观背景。</strong>二级债基以债券资产为盾、少量权益为矛，长期呈低波动复利轨迹；沪深300全收益指数计入分红再投资，是权益资产的完整回报。两条曲线同起点（2004 年末 = 0%）对比累计涨幅，相当于观察权益与「固收+」自起点以来的累计复利赛跑。</p>
+              <p><strong>观察方法。</strong>沪深300全收益运行在基准线上方，说明权益累计回报跑赢稳健固收；跌破基准线，则意味着权益长期复利已被反超——2005 年以来每次跌破都出现在大级别底部区域（2005-2006、2008、2011-2014、2018、2024 等），红点为历次跌破的起点标记，仅作历史事实展示。</p>
+              <p><strong>口径说明。</strong>等效基准线以万得混合债券型二级指数（885007）的历史轨迹为准（本指标采用中证债券型基金指数（H11023）× 1.64 校准，近似 885007），请关注相对位置而非精确数值。跌破事件按「间隔 ≤15 个交易日的相邻区段合并」计为一次。</p>
             </div>
           </details>
         </section>

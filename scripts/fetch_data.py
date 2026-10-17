@@ -26,8 +26,15 @@ INDICES = [
 ]
 
 OUTPUT_PATH = Path("data/index_data.json")
+LAB_OUTPUT_PATH = Path("data/lab_data.json")
 MAX_RETRIES = 3
 RETRY_DELAY = 5  # seconds
+
+# 指标实验室专用序列（中证指数接口）：沪深300全收益 vs 二级债基
+LAB_SERIES = [
+    {"key": "csi300tr", "code": "H00300", "name": "沪深300全收益"},
+    {"key": "bond2",    "code": "H11023", "name": "二级债基"},
+]
 
 # ─── 工具函数 ─────────────────────────────────────────────────────────────────
 
@@ -186,6 +193,51 @@ def process_index(info: dict) -> dict:
     }
 
 
+# ─── 指标实验室数据（沪深300全收益 vs 二级债基，失败不影响主数据） ─────────────
+
+def fetch_csindex_series(code: str) -> dict:
+    """中证指数接口（全收益/债基等主接口之外的补充源），返回 {dates, prices}。"""
+    last_err = None
+    for attempt in range(MAX_RETRIES):
+        try:
+            df = ak.stock_zh_index_hist_csindex(
+                symbol=code,
+                start_date="20040101",
+                end_date=datetime.now(CST).strftime("%Y%m%d"),
+            )
+            df = df.sort_values("日期").reset_index(drop=True)
+            dates = [str(d)[:10] for d in df["日期"]]
+            prices = [round(float(v), 4) for v in df["收盘"].values]
+            return {"dates": dates, "prices": prices}
+        except Exception as exc:
+            last_err = exc
+            if attempt < MAX_RETRIES - 1:
+                print(f"  [{code}] 第 {attempt + 1} 次请求失败: {exc}，{RETRY_DELAY}s 后重试…")
+                time.sleep(RETRY_DELAY)
+    raise RuntimeError(f"[{code}] csindex 重试 {MAX_RETRIES} 次后仍失败: {last_err}")
+
+
+def write_lab_data() -> None:
+    payload: dict = {}
+    last_dates: list[str] = []
+    for s in LAB_SERIES:
+        try:
+            series = fetch_csindex_series(s["code"])
+            series["name"] = s["name"]
+            payload[s["key"]] = series
+            last_dates.append(series["dates"][-1])
+            print(f"  [lab] {s['name']} ({s['code']}): {len(series['dates'])} 条，至 {series['dates'][-1]}")
+        except Exception as exc:
+            print(f"[WARN] 实验室数据 {s['name']} ({s['code']}) 拉取失败，已跳过: {exc}")
+    if not payload:
+        return
+    # 展示口径与主数据一致：数据截止交易日 16:03（UTC+8）
+    payload["update_time"] = (min(last_dates) if last_dates else datetime.now(CST).strftime("%Y-%m-%d")) + " 16:03"
+    with open(LAB_OUTPUT_PATH, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    print(f"✓ 实验室数据已写入 {LAB_OUTPUT_PATH}")
+
+
 # ─── 主程序 ───────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -210,6 +262,8 @@ def main() -> None:
         json.dump(results, f, ensure_ascii=False, indent=2)
 
     print(f"\n✓ 数据已写入 {OUTPUT_PATH}（共 {len(results)} 个指数）")
+
+    write_lab_data()
 
 
 if __name__ == "__main__":

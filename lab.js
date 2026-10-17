@@ -4,6 +4,7 @@
    ========================================================================= */
 
 let DATA = null;
+let LABDATA = null;   // 指标实验室扩展数据（沪深300全收益 vs 二级债基）
 let UPDATE_TIME = "--";
 
 /* ──────────────  纯计算函数（与 Python 校验脚本同口径，可单测）  ── */
@@ -236,20 +237,27 @@ async function loadAndInit() {
     DATA = window.DIAMOND_DATA;
     UPDATE_TIME = window.DIAMOND_UPDATE_TIME;
     if (footerMock) { footerMock.textContent = "⚠ 当前为模拟数据"; }
-  } finally {
-    hideLoadingOverlay();
   }
+  // 实验室扩展数据（沪深300全收益 vs 二级债基）：失败仅隐藏 L3，不影响其它指标
+  try {
+    const r2 = await fetch("data/lab_data.json?v=" + new Date().toISOString().slice(0, 10));
+    if (r2.ok) LABDATA = await r2.json();
+  } catch (_) { LABDATA = null; }
+  hideLoadingOverlay();
   init();
 }
 
 /* ──────────────  状态与公共  ───────────────────────────────────── */
+const PANEL_IDS = ["cost", "ma850", "dip"];
+const _indParam = (typeof location !== "undefined" && new URLSearchParams(location.search).get("ind")) || "";
 const state = {
   activeIdx: 0,
   freq: (typeof location !== "undefined" && new URLSearchParams(location.search).get("freq") === "W") ? "W" : "D",
-  ind: (typeof location !== "undefined" && new URLSearchParams(location.search).get("ind") === "ma850") ? "ma850" : "cost",
+  ind: PANEL_IDS.includes(_indParam) ? _indParam : "cost",
 };
 let costChart = null;
 let ma850Chart = null;
+let dipChart = null;
 
 const fmtSigned = (v, digits = 1) => (v > 0 ? "+" : "") + v.toFixed(digits) + "%";
 /* 每指数预计算 */
@@ -294,14 +302,20 @@ function setActive(i, pushHash) {
 }
 
 /* ──────────────  指标 tab 切换（左侧定宽栏）  ───────────────────── */
+function syncPanels() {
+  PANEL_IDS.forEach(id => {
+    const el = document.getElementById("panel-" + id);
+    if (el) el.hidden = id !== state.ind;
+  });
+}
+
 function bindIndTabs() {
   document.querySelectorAll(".lab-tab").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.ind === state.ind);
     btn.setAttribute("aria-selected", btn.dataset.ind === state.ind ? "true" : "false");
     btn.addEventListener("click", () => setInd(btn.dataset.ind, true));
   });
-  document.getElementById("panel-cost").hidden = state.ind !== "cost";
-  document.getElementById("panel-ma850").hidden = state.ind !== "ma850";
+  syncPanels();
 }
 
 function setInd(ind, pushUrl) {
@@ -311,8 +325,7 @@ function setInd(ind, pushUrl) {
     b.classList.toggle("active", on);
     b.setAttribute("aria-selected", on ? "true" : "false");
   });
-  document.getElementById("panel-cost").hidden = ind !== "cost";
-  document.getElementById("panel-ma850").hidden = ind !== "ma850";
+  syncPanels();
   if (pushUrl && typeof URLSearchParams !== "undefined") {
     const q = new URLSearchParams(location.search);
     if (ind === "cost") q.delete("ind"); else q.set("ind", ind);
@@ -324,6 +337,7 @@ function setInd(ind, pushUrl) {
 
 function renderActive() {
   if (state.ind === "ma850") renderMa850();
+  else if (state.ind === "dip") renderDip();
   else renderCost();
 }
 
@@ -752,6 +766,147 @@ function renderMa850() {
 ``;
 }
 
+/* ──────────────  沪深300超跌基准（L3）  ─────────────────────────────
+   沪深300全收益 vs 二级债基：同起点等效（起点=1000），红点=历次跌破起点。 */
+const C_DIP_PRICE = "#fbbf24";    // 琥珀：沪深300全收益
+const C_DIP_BENCH = "#f472b6";    // 玫红：等效基准线
+const C_DIP_MARK = "#ef4444";     // 红：跌破起点
+
+let dipData = null;
+const DIP_CAL = 1.64;          // 校准系数：中证债券基金 H11023 × 1.64 ≈ 万得二级债基 885007 轨迹（口径见指标说明）
+const DIP_BASE = "2004-12-31"; // 沪深300全收益基日
+function buildDipData() {
+  if (!LABDATA || !LABDATA.csi300tr || !LABDATA.bond2) return null;
+  const a = LABDATA.csi300tr, b = LABDATA.bond2;
+  const bMap = new Map(b.dates.map((t, i) => [t, b.prices[i]]));
+  const dates = [], pxRaw = [], bnRaw = [];
+  for (let i = 0; i < a.dates.length; i++) {
+    const t = a.dates[i];
+    if (t < DIP_BASE) continue;   // H00300 基日前的回填值跳过
+    const bv = bMap.get(t);
+    if (bv != null && a.prices[i] != null) { dates.push(t); pxRaw.push(a.prices[i]); bnRaw.push(bv); }
+  }
+  if (dates.length < 2) return null;
+  const p0 = pxRaw[0], b0 = bnRaw[0];
+  const px = pxRaw.map(v => +(v / p0 * 1000).toFixed(2));
+  const bn = bnRaw.map(v => +(v / b0 * DIP_CAL * 1000).toFixed(2));
+  // 跌破区段：间隔 ≤15 个交易日的相邻区段合并为一个事件，标记事件起点
+  const segs = [];
+  let inSeg = false;
+  for (let i = 0; i < px.length; i++) {
+    const bl = px[i] < bn[i];
+    if (bl && !inSeg) { segs.push([i, i]); inSeg = true; }
+    else if (!bl && inSeg) { segs[segs.length - 1][1] = i - 1; inSeg = false; }
+  }
+  if (inSeg) segs[segs.length - 1][1] = px.length - 1;
+  const events = [];
+  for (const s of segs) {
+    if (events.length && s[0] - events[events.length - 1][1] <= 15) events[events.length - 1][1] = s[1];
+    else events.push(s);
+  }
+  const dips = events.map(e => e[0]);
+  return { dates, px, bn, dips, rawLast: pxRaw[pxRaw.length - 1] };
+}
+
+function buildDipOption(dd) {
+  const dates = dd.dates;
+  const pxPairs = dates.map((t, i) => [t, dd.px[i]]);
+  const bnPairs = dates.map((t, i) => [t, dd.bn[i]]);
+  const markPairs = dd.dips.map(i => [dates[i], dd.px[i]]);
+  const markName = `跌破起点 (${dd.dips.length}次)`;
+
+  const initBounds = fullExtentBounds([dd.px, dd.bn]);
+  // 线性轴 + 累计涨幅% 刻度（参考 @北漂民工 原图风格：起点 0%，等距百分比）
+  const yAxisBase = {
+    type: "value",
+    min: initBounds.min, max: initBounds.max,
+    axisLine: { show: false }, axisTick: { show: false },
+    axisLabel: {
+      color: "#4d5666", fontSize: 10, fontFamily: "JetBrains Mono, monospace",
+      formatter: (v) => Math.round(v / 10 - 100) + "%",   // 等效值 1000 → 0%
+    },
+    splitLine: { lineStyle: { color: "rgba(255,255,255,0.035)" } },
+  };
+
+  // 日期 → 下标映射：tooltip 直接从数组取值（LTTB 抽样下按 series 名取参不可靠）
+  const idxOf = new Map(dates.map((t, i) => [t, i]));
+  const tsToKey = (ts) => {
+    const dt = new Date(ts);   // ECharts 按本地时区解析日期串，取本地年月日对齐
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+  };
+
+  return {
+    backgroundColor: "transparent",
+    animation: false,
+    grid: { left: 56, right: 56, top: 42, bottom: 62 },
+    legend: baseLegend(["沪深300全收益", "等效基准线"]),   // 跌破红点只在图上标注，不进图例
+    tooltip: {
+      trigger: "axis",
+      ...baseTooltipStyle(),
+      formatter: (params) => {
+        const date = params[0].axisValueLabel;
+        const i = idxOf.get(tsToKey(params[0].axisValue));
+        const val = (arr) => (i === undefined ? null : arr[i]);
+        const p = val(dd.px), b = val(dd.bn);
+        let html = `<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8b95a8;letter-spacing:0.08em;margin-bottom:8px;">${date}</div>`;
+        // 直接以累计涨幅%为主值展示（起点=0%），与参考图一致
+        const row = (label, v, color) => {
+          const vTxt = (v === null || v === undefined) ? "--" : fmtSigned(v / 10 - 100, 1);
+          return `<div style="display:flex;justify-content:space-between;gap:18px;margin-bottom:4px;">
+            <span style="font-size:11px;color:#8b95a8;">${label}</span>
+            <span style="font-family:'Chakra Petch',sans-serif;font-size:13px;font-weight:600;color:${color};font-variant-numeric:tabular-nums;">${vTxt}</span></div>`;
+        };
+        html += row("沪深300全收益", p, C_DIP_PRICE);
+        html += row("等效基准线", b, C_DIP_BENCH);
+        if (p != null && b != null) {
+          const dev = (p / b - 1) * 100;
+          const color = dev >= 0 ? "#22c55e" : "#ff3344";   // 红跌绿涨
+          html += `<span style="font-size:10px;color:${color};">${dev >= 0 ? "高于" : "低于"}基准 ${fmtSigned(dev, 2)}</span>`;
+        }
+        return html;
+      },
+    },
+    xAxis: baseXAxis(),
+    yAxis: [
+      { ...yAxisBase, position: "left" },
+      { ...yAxisBase, position: "right", splitLine: { show: false } },
+    ],
+    dataZoom: baseDataZoom(),
+    series: [
+      { name: "等效基准线", type: "line", data: bnPairs, showSymbol: false, sampling: "lttb",
+        lineStyle: { color: C_DIP_BENCH, width: 1.8 }, itemStyle: { color: C_DIP_BENCH }, z: 2 },
+      { name: "沪深300全收益", type: "line", data: pxPairs, showSymbol: false, sampling: "lttb",
+        lineStyle: { color: C_DIP_PRICE, width: 2 }, itemStyle: { color: C_DIP_PRICE }, z: 3 },
+      { name: markName, type: "scatter", data: markPairs, symbolSize: 8,
+        itemStyle: { color: C_DIP_MARK, borderColor: "rgba(255,255,255,0.85)", borderWidth: 1 },
+        tooltip: { show: false }, z: 4 },
+    ],
+  };
+}
+
+function renderDip() {
+  if (!dipData) return;
+  if (!dipChart) {
+    dipChart = echarts.init(document.getElementById("dipChart"), null, { renderer: "canvas" });
+    attachMouseupFix("dipChart");
+    attachZoomAdaptive(dipChart, () => [dipData.px, dipData.bn]);
+  }
+  dipChart.setOption(buildDipOption(dipData), true);
+
+  // 读数条
+  const dd = dipData;
+  const pL = dd.px[dd.px.length - 1], bL = dd.bn[dd.bn.length - 1];
+  const dev = (pL / bL - 1) * 100;
+  const cls = dev >= 0 ? "pos" : "neg";
+  document.getElementById("dipReadout").innerHTML =
+    `<span class="lab-stat"><span class="k">沪深300全收益</span><span class="v">${dd.rawLast.toFixed(2)}</span></span>
+     <span class="lab-sep">·</span>` +
+    `<span class="lab-stat"><span class="k">偏离基准</span><span class="v ${cls}">${fmtSigned(dev)}</span></span>
+     <span class="lab-sep">·</span>` +
+    `<span class="lab-stat"><span class="k">历史跌破</span><span class="v">${dd.dips.length} 次</span></span>` +
+``;
+}
+
 /* ──────────────  周期切换  ─────────────────────────────────────── */
 function bindFreq() {
   document.querySelectorAll("[data-freq]").forEach(btn => {
@@ -769,6 +924,14 @@ function init() {
   document.getElementById("update-time").textContent = UPDATE_TIME.replace(/\s*CST$/i, "");
   enrichAll();
 
+  // L3 超跌基准数据：缺失时隐藏 tab，不让用户点到空面板
+  dipData = buildDipData();
+  if (!dipData) {
+    const t = document.querySelector('.lab-tab[data-ind="dip"]');
+    if (t) t.style.display = "none";
+    if (state.ind === "dip") state.ind = "cost";
+  }
+
   // hash 同步指数选择
   const h = (location.hash || "").replace("#", "");
   const hi = enriched.findIndex(d => d.code === h);
@@ -782,6 +945,7 @@ function init() {
   window.addEventListener("resize", () => {
     costChart && costChart.resize();
     ma850Chart && ma850Chart.resize();
+    dipChart && dipChart.resize();
   });
 }
 

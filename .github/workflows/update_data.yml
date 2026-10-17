@@ -31,7 +31,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/index_data.json
+          git add data/index_data.json data/lab_data.json
           if git diff --cached --quiet; then
             echo "数据无变化，跳过 commit。"
           else

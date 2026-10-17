@@ -76,6 +76,20 @@ temperature = percentile(indicator) × 100
 
 ---
 
+## 指标实验室（lab.html）
+
+主站右上角「查看更多指标」进入实验页，目前包含三个指标：
+
+| 指标 | 一句话说明 |
+|---|---|
+| L1 成本锚 | 收盘价对照 200 日定投成本线、850 日长期成本线、210 月均线（超长期成本），看价格相对各周期持仓成本的偏离（支持日线/周线） |
+| L2 850黄金乘数 | 以 850 日均线为价值中枢，向上画出 1.6 / 2 / 3 / 5 倍乘数带，看价格相对长期均值的倍数偏离 |
+| L3 沪深300超跌基准 | 沪深300全收益 vs 二级债基等效基准线（2004 年末起累计涨幅对比），权益累计轨迹跌破基准线的位置历史上多为底部区域，红点标记历次跌破起点 |
+
+> 实验室指标只展示客观数值与历史事实，不构成投资建议。
+
+---
+
 ## 项目结构
 
 ```text
@@ -84,7 +98,8 @@ index-thermometer/
 │   └── workflows/
 │       └── update_data.yml       # GitHub Actions 自动更新任务
 ├── data/
-│   └── index_data.json           # 前端读取的指数温度数据
+│   ├── index_data.json           # 前端读取的指数温度数据
+│   └── lab_data.json             # 指标实验室数据（沪深300全收益 / 债券基金指数）
 ├── images/
 │   ├── wechat-qr-placeholder.svg
 │   └── wechat-qrq.png
@@ -93,6 +108,7 @@ index-thermometer/
 │   └── requirements.txt          # Python 依赖
 ├── app.js                        # 前端交互与图表逻辑
 ├── index.html                    # 页面结构
+├── lab.html / lab.js             # 指标实验室页面与逻辑
 ├── mock-data.js                  # 本地模拟数据
 ├── style.css                     # 页面样式
 └── README.md
@@ -165,10 +181,10 @@ python scripts/fetch_data.py
 默认配置为：
 
 - 工作日自动运行；
-- UTC 08:10 触发，即北京时间 16:10；
+- UTC 08:03 触发，即北京时间 16:03；
 - 安装 Python 依赖；
 - 执行 `scripts/fetch_data.py`；
-- 如 `data/index_data.json` 有变化，则自动提交回仓库。
+- 如 `data/index_data.json` 或 `data/lab_data.json` 有变化，则自动提交回仓库。
 
 也可以在 GitHub Actions 页面中手动触发，用于首次回填或补跑数据。
 
