@@ -307,6 +307,9 @@ function syncPanels() {
     const el = document.getElementById("panel-" + id);
     if (el) el.hidden = id !== state.ind;
   });
+  // L3 为固定品种对比，与指数切换无关：禁用 chips
+  const chips = document.getElementById("idxChips");
+  if (chips) chips.classList.toggle("chips-disabled", state.ind === "dip");
 }
 
 function bindIndTabs() {
